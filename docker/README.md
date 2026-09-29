@@ -15,6 +15,7 @@ Everything needed to build and test SnailTrail, so the host needs nothing but Do
 - **GoogleTest**, so configuring never downloads anything
 - **Python 3.13 headers** and **pybind11**, for the extension module
 - **MinGW-w64**, which cross-compiles a native Windows `snailtrail.exe` from Linux
+  (`scripts/check.sh mingw`)
 
 ```bash
 docker build -f docker/dev.Dockerfile -t snailtrail-dev docker/

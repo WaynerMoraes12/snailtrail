@@ -19,6 +19,8 @@ parallel and a failure names the exact case.
 | `test_advisor.cpp` | fact collection, every rule's positive and negative cases, the index advisor against a real schema, the engine |
 | `test_analyzer.cpp` | ranking, advice, thread-count independence, options, file/stream/text agreement |
 | `test_reporters.cpp` | text layout and width, colours, the JSON schema, Markdown, the factory |
+| `test_cli.cpp` | argument parsing, every command in-process, exit codes, standard input |
+| `support.hpp` | locating `samples/` (overridable with `SNAILTRAIL_SAMPLES_DIR`, for running the Windows build natively) |
 
 ## GoogleTest
 

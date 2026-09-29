@@ -26,11 +26,12 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(SnailTrailHelpers)
 
 add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
+add_compile_definitions($<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 snailtrail_enable_sanitizers()
 
 add_subdirectory(core)
 
-if(SNAILTRAIL_BUILD_CLI AND EXISTS "${PROJECT_SOURCE_DIR}/cli/CMakeLists.txt")
+if(SNAILTRAIL_BUILD_CLI)
     add_subdirectory(cli)
 endif()
 

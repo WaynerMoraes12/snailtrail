@@ -5,6 +5,7 @@ CMake modules shared by every target.
 | File | Purpose |
 |---|---|
 | `SnailTrailHelpers.cmake` | `snailtrail_set_warnings(<target>)` and `snailtrail_enable_sanitizers()` |
+| `mingw-w64.cmake` | toolchain file cross-compiling Windows binaries with MinGW-w64 (see [`scripts/`](../scripts)) |
 
 ## `snailtrail_set_warnings(<target>)`
 
