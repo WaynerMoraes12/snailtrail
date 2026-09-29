@@ -12,6 +12,7 @@ parallel and a failure names the exact case.
 | `test_fingerprint.cpp` | normalisation rules, IN and VALUES collapsing, statement kinds |
 | `test_parser.cpp` | every statement and clause, precedence, mysqldump DDL, scripts, error positions, pathological nesting |
 | `test_sql_writer.cpp` | SQL round trips, minimal parenthesisation, identifier quoting, the tree printer |
+| `test_schema.cpp` | type categories, loading a mysqldump file, ALTER/CREATE INDEX replay, index matching |
 
 ## GoogleTest
 

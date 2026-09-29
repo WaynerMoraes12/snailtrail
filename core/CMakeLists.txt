@@ -11,6 +11,7 @@ add_library(snailtrail_core STATIC
     src/sql/parser.cpp
     src/sql/sql_writer.cpp
     src/sql/ast_printer.cpp
+    src/schema/catalog.cpp
 )
 add_library(snailtrail::core ALIAS snailtrail_core)
 

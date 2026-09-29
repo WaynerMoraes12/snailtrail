@@ -30,6 +30,7 @@ ctest --test-dir build --output-on-failure
 |---|---|
 | [`core/`](core) | the C++20 library: SQL lexer, fingerprints and everything built on them |
 | [`tests/`](tests) | the GoogleTest suite |
+| [`samples/`](samples) | example schema and slow logs |
 | [`cmake/`](cmake) | shared compiler settings |
 | [`docker/`](docker) | container images |
 | [`scripts/`](scripts) | build and check helpers |

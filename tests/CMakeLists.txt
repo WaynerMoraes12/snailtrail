@@ -18,6 +18,7 @@ set(SNAILTRAIL_TEST_SOURCES
     test_fingerprint.cpp
     test_parser.cpp
     test_sql_writer.cpp
+    test_schema.cpp
 )
 
 add_executable(snailtrail_tests ${SNAILTRAIL_TEST_SOURCES})

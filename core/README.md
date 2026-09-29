@@ -17,6 +17,7 @@ core/
 |---|---|
 | [`util`](src/util) | strings, human-readable formatting, civil time, FNV-1a, a streaming JSON writer |
 | [`sql`](src/sql) | lexer, fingerprints, AST, recursive-descent parser, SQL writer |
+| [`schema`](src/schema) | the schema catalog loaded from DDL, index matching, type categories |
 
 ## Conventions
 

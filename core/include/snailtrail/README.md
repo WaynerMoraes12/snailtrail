@@ -7,3 +7,4 @@ matching folder under [`core/src/`](../../src) explains how the module works.
 |---|---|---|
 | [`util/`](util) | `snailtrail::util` | strings, hash, JSON writer |
 | [`sql/`](sql) | `snailtrail::sql` | tokens, lexer, fingerprints, AST, parser, SQL writer |
+| [`schema/`](schema) | `snailtrail::schema` | the schema catalog |

@@ -8,3 +8,4 @@ design of its module: what problem it solves, the decisions behind it and the tr
 |---|---|
 | [`util/`](util) | shared helpers |
 | [`sql/`](sql) | lexer, fingerprints, AST and parser |
+| [`schema/`](schema) | schema catalog |
