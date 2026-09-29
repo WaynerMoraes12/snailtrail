@@ -11,3 +11,4 @@ design of its module: what problem it solves, the decisions behind it and the tr
 | [`schema/`](schema) | schema catalog |
 | [`log/`](log) | slow-log parsing, memory mapping, chunking, generator |
 | [`stats/`](stats) | histograms, query classes, aggregation |
+| [`advisor/`](advisor) | rule engine, rules, index advisor |

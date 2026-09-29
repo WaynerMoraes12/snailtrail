@@ -116,7 +116,7 @@ std::string format_count(std::uint64_t n) {
     out.reserve(digits.size() + digits.size() / 3);
     const std::size_t lead = digits.size() % 3;
     for (std::size_t i = 0; i < digits.size(); ++i) {
-        if (i > 0 && (i - lead) % 3 == 0) out += ',';
+        if (i > 0 && i >= lead && (i - lead) % 3 == 0) out += ',';
         out += digits[i];
     }
     return out;

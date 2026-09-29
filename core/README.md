@@ -20,6 +20,7 @@ core/
 | [`schema`](src/schema) | the schema catalog loaded from DDL, index matching, type categories |
 | [`log`](src/log) | slow-log parsing (MySQL, Percona, MariaDB), memory mapping, chunking for parallelism, a log generator |
 | [`stats`](src/stats) | latency histograms, per-class metrics, deterministic aggregation |
+| [`advisor`](src/advisor) | query facts, the rule engine and fifteen rules, the composite-index advisor |
 
 ## Conventions
 

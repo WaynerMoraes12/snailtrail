@@ -19,6 +19,15 @@ add_library(snailtrail_core STATIC
     src/stats/histogram.cpp
     src/stats/query_class.cpp
     src/stats/aggregator.cpp
+    src/advisor/finding.cpp
+    src/advisor/query_facts.cpp
+    src/advisor/helpers.cpp
+    src/advisor/rule.cpp
+    src/advisor/index_advisor.cpp
+    src/advisor/rules_structure.cpp
+    src/advisor/rules_predicates.cpp
+    src/advisor/rules_metrics.cpp
+    src/advisor/rule_engine.cpp
 )
 add_library(snailtrail::core ALIAS snailtrail_core)
 

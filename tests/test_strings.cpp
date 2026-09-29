@@ -45,6 +45,9 @@ TEST(Strings, FormatsCountsAndBytes) {
     EXPECT_EQ(util::format_count(0), "0");
     EXPECT_EQ(util::format_count(999), "999");
     EXPECT_EQ(util::format_count(1234567), "1,234,567");
+    EXPECT_EQ(util::format_count(12000), "12,000");
+    EXPECT_EQ(util::format_count(123456), "123,456");
+    EXPECT_EQ(util::format_count(1000), "1,000");
     EXPECT_EQ(util::format_compact(12.0), "12");
     EXPECT_EQ(util::format_compact(2.5), "2.5");
     EXPECT_EQ(util::format_compact(12345.0), "12.3k");

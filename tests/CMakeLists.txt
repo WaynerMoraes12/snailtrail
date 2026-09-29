@@ -22,6 +22,7 @@ set(SNAILTRAIL_TEST_SOURCES
     test_slow_log_parser.cpp
     test_chunker.cpp
     test_stats.cpp
+    test_advisor.cpp
 )
 
 add_executable(snailtrail_tests ${SNAILTRAIL_TEST_SOURCES})
