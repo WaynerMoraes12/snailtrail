@@ -4,6 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <exception>
+#include <latch>
 #include <string>
 #include <thread>
 #include <vector>
@@ -20,6 +21,8 @@ namespace snailtrail::analysis {
 namespace {
 
 using Clock = std::chrono::steady_clock;
+
+constexpr std::string_view unknown_database = "\x01unknown-database";
 
 double seconds_since(Clock::time_point start) {
     return std::chrono::duration<double>(Clock::now() - start).count();
@@ -55,24 +58,36 @@ bool Analyzer::accepts(std::string_view database) const noexcept {
 }
 
 stats::Aggregator Analyzer::aggregate(std::string_view text, RunInfo& run) const {
-    const auto chunks = log::split_log(text, effective_threads(), options_.min_chunk_bytes);
+    const auto chunks = log::split_log(text, effective_threads(), options_.min_chunk_bytes, false);
+    const bool prescan = !options_.database.empty() && chunks.size() > 1;
     std::vector<stats::Aggregator> partials(chunks.size());
     std::vector<log::SlowLogParser::Counters> counters(chunks.size());
     std::vector<std::uint64_t> filtered(chunks.size(), 0);
     std::vector<std::exception_ptr> errors(chunks.size());
+    std::vector<std::string> final_database(chunks.size());
+    std::vector<std::string_view> last_use(chunks.size());
+    std::latch scanned(prescan ? static_cast<std::ptrdiff_t>(chunks.size()) : 0);
 
     auto work = [&](std::size_t i) {
+        std::string_view initial = i == 0 ? std::string_view{} : unknown_database;
+        if (prescan) {
+            last_use[i] = log::last_use_database(chunks[i].text);
+            scanned.arrive_and_wait();
+            initial = log::inherited_database(last_use, i);
+        }
         try {
-            counters[i] = log::SlowLogParser::parse_text(
-                chunks[i].text,
-                [&, i](const log::QueryEvent& e) {
-                    if (accepts(e.database)) {
-                        partials[i].add(e);
-                    } else {
-                        ++filtered[i];
-                    }
-                },
-                chunks[i].initial_database);
+            log::SlowLogParser parser([&, i](const log::QueryEvent& e) {
+                if (accepts(e.database)) {
+                    partials[i].add(e);
+                } else {
+                    ++filtered[i];
+                }
+            });
+            parser.set_database(initial);
+            log::for_each_line(chunks[i].text, [&parser](std::string_view line) { parser.feed(line); });
+            parser.finish();
+            counters[i] = parser.counters();
+            final_database[i] = parser.database();
         } catch (...) {
             errors[i] = std::current_exception();
         }
@@ -87,6 +102,14 @@ stats::Aggregator Analyzer::aggregate(std::string_view text, RunInfo& run) const
     }
     for (const auto& e : errors) {
         if (e) std::rethrow_exception(e);
+    }
+
+    if (!prescan) {
+        std::string effective;
+        for (std::size_t i = 0; i < chunks.size(); ++i) {
+            if (i > 0) partials[i].rename_database(unknown_database, effective);
+            if (final_database[i] != unknown_database) effective = final_database[i];
+        }
     }
 
     stats::Aggregator total = std::move(partials.front());

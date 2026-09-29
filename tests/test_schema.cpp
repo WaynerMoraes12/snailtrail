@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "support.hpp"
+
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -12,12 +14,7 @@ using snailtrail::sql::IndexKind;
 
 namespace {
 
-std::string read_sample(const std::string& name) {
-    std::ifstream in(std::string(SNAILTRAIL_SAMPLES_DIR) + "/" + name, std::ios::binary);
-    std::ostringstream out;
-    out << in.rdbuf();
-    return out.str();
-}
+using snailtrail::testing::read_sample;
 
 }
 

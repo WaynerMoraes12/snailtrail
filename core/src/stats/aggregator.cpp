@@ -52,6 +52,10 @@ void Aggregator::merge(Aggregator&& other) {
     other.totals_ = Totals{};
 }
 
+void Aggregator::rename_database(std::string_view from, std::string_view to) {
+    for (auto& [id, cls] : classes_) cls.rename_database(from, to);
+}
+
 const QueryClass* Aggregator::find(std::uint64_t id) const {
     const auto it = classes_.find(id);
     return it == classes_.end() ? nullptr : &it->second;

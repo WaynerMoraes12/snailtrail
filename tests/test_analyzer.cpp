@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "support.hpp"
+
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -30,10 +32,7 @@ const std::string& generated_log() {
 
 const schema::SchemaCatalog& shop() {
     static const schema::SchemaCatalog catalog = [] {
-        std::ifstream in(std::string(SNAILTRAIL_SAMPLES_DIR) + "/shop_schema.sql", std::ios::binary);
-        std::ostringstream s;
-        s << in.rdbuf();
-        return schema::SchemaCatalog::from_ddl(s.str());
+        return schema::SchemaCatalog::from_ddl(snailtrail::testing::read_sample("shop_schema.sql"));
     }();
     return catalog;
 }
@@ -163,6 +162,40 @@ TEST(Analyzer, FiltersByDatabase) {
 
     o.database = "SHOP";
     EXPECT_GT(Analyzer(o).analyze_text(generated_log()).totals.events, 5000U);
+}
+
+TEST(Analyzer, AttributesDatabasesAcrossChunkBoundaries) {
+    std::string log;
+    int db = 0;
+    for (int i = 0; i < 3000; ++i) {
+        log += "# Time: 2024-01-15T10:00:00.000000Z\n# User@Host: app[app] @ h []  Id: 1\n";
+        log += "# Query_time: 0.001000  Lock_time: 0.000000 Rows_sent: 1  Rows_examined: 1\n";
+        if (i % 150 == 0) log += "use db" + std::to_string(db++ % 4) + ";\n";
+        log += "SET timestamp=1705312800;\nSELECT * FROM t" + std::to_string(i % 3) + " WHERE id = " +
+               std::to_string(i) + ";\n";
+    }
+    AnalyzeOptions o = options(1);
+    o.min_chunk_bytes = 4 * 1024;
+    const Report sequential = Analyzer(o).analyze_text(log);
+    o.threads = 8;
+    const Report parallel = Analyzer(o).analyze_text(log);
+    EXPECT_EQ(sequential.run.chunks, 1U);
+    EXPECT_GT(parallel.run.chunks, 4U);
+    ASSERT_EQ(sequential.classes.size(), 3U);
+    ASSERT_EQ(parallel.classes.size(), 3U);
+    for (std::size_t i = 0; i < 3; ++i) {
+        EXPECT_EQ(sequential.classes[i].stats.databases(), parallel.classes[i].stats.databases());
+        EXPECT_EQ(sequential.classes[i].stats.worst().database, parallel.classes[i].stats.worst().database);
+        EXPECT_EQ(sequential.classes[i].stats.databases().size(), 4U);
+    }
+
+    o.database = "db2";
+    const Report filtered = Analyzer(o).analyze_text(log);
+    o.threads = 1;
+    const Report filtered_sequential = Analyzer(o).analyze_text(log);
+    EXPECT_EQ(filtered.totals.events, filtered_sequential.totals.events);
+    EXPECT_EQ(filtered.totals.events, 750U);
+    EXPECT_EQ(filtered.run.filtered, 2250U);
 }
 
 TEST(Analyzer, FilesStreamsAndTextAgree) {

@@ -57,8 +57,16 @@ std::string_view last_use_database(std::string_view text) noexcept {
     return {};
 }
 
+std::string_view inherited_database(const std::vector<std::string_view>& last_use_per_chunk,
+                                    std::size_t chunk) noexcept {
+    for (std::size_t j = std::min(chunk, last_use_per_chunk.size()); j-- > 0;) {
+        if (!last_use_per_chunk[j].empty()) return last_use_per_chunk[j];
+    }
+    return {};
+}
+
 std::vector<LogChunk> split_log(std::string_view log, std::size_t parts,
-                                std::size_t min_chunk_bytes) {
+                                std::size_t min_chunk_bytes, bool resolve_databases) {
     std::vector<LogChunk> chunks;
     const std::size_t floor_bytes = std::max<std::size_t>(min_chunk_bytes, 1);
     parts = std::min(parts, std::max<std::size_t>(1, log.size() / floor_bytes));
@@ -78,8 +86,10 @@ std::vector<LogChunk> split_log(std::string_view log, std::size_t parts,
     for (std::size_t i = 0; i < starts.size(); ++i) {
         const std::size_t end = i + 1 < starts.size() ? starts[i + 1] : log.size();
         LogChunk chunk{log.substr(starts[i], end - starts[i]), database};
-        const std::string_view last = last_use_database(chunk.text);
-        if (!last.empty()) database = last;
+        if (resolve_databases) {
+            const std::string_view last = last_use_database(chunk.text);
+            if (!last.empty()) database = last;
+        }
         chunks.push_back(std::move(chunk));
     }
     return chunks;

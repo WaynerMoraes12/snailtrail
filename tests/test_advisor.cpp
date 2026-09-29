@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include "support.hpp"
+
 #include <algorithm>
 #include <optional>
 #include <fstream>
@@ -19,12 +21,7 @@ using advisor::Severity;
 
 namespace {
 
-std::string read_sample(const std::string& name) {
-    std::ifstream in(std::string(SNAILTRAIL_SAMPLES_DIR) + "/" + name, std::ios::binary);
-    std::ostringstream out;
-    out << in.rdbuf();
-    return out.str();
-}
+using snailtrail::testing::read_sample;
 
 const schema::SchemaCatalog& shop() {
     static const schema::SchemaCatalog catalog = schema::SchemaCatalog::from_ddl(read_sample("shop_schema.sql"));

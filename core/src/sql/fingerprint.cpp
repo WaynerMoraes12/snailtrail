@@ -76,7 +76,7 @@ public:
         switch (t.kind) {
         case TokenKind::Word:
         case TokenKind::Variable: append_lower(t.text); break;
-        case TokenKind::QuotedIdentifier: append_lower(unquote_identifier(t)); break;
+        case TokenKind::QuotedIdentifier: append_unquoted_lower(t.text); break;
         case TokenKind::String:
         case TokenKind::Number:
         case TokenKind::HexNumber:
@@ -84,13 +84,12 @@ public:
         default: out_ += t.text;
         }
         previous_ = t.kind;
-        previous_opens_group_ = t.kind == TokenKind::Word && is_operator_keyword(t.text);
+        previous_text_ = t.text;
     }
 
     void write_group(std::string_view group) {
         out_ += group;
         previous_ = TokenKind::RParen;
-        previous_opens_group_ = false;
     }
 
     void write_unit(std::string_view unit) {
@@ -103,6 +102,15 @@ private:
         for (char c : s) out_ += util::to_lower(c);
     }
 
+    void append_unquoted_lower(std::string_view quoted) {
+        std::string_view body = quoted.substr(1);
+        if (!body.empty() && body.back() == '`') body.remove_suffix(1);
+        for (std::size_t i = 0; i < body.size(); ++i) {
+            out_ += util::to_lower(body[i]);
+            if (body[i] == '`' && i + 1 < body.size() && body[i + 1] == '`') ++i;
+        }
+    }
+
     void space_before(TokenKind kind) {
         if (out_.empty()) return;
         if (kind == TokenKind::Comma || kind == TokenKind::RParen || kind == TokenKind::Dot ||
@@ -111,8 +119,9 @@ private:
         }
         if (previous_ == TokenKind::LParen || previous_ == TokenKind::Dot) return;
         if (kind == TokenKind::LParen) {
-            const bool call_like = (previous_ == TokenKind::Word && !previous_opens_group_) ||
-                                   previous_ == TokenKind::QuotedIdentifier;
+            const bool call_like =
+                (previous_ == TokenKind::Word && !is_operator_keyword(previous_text_)) ||
+                previous_ == TokenKind::QuotedIdentifier;
             if (call_like) return;
         }
         out_ += ' ';
@@ -120,7 +129,7 @@ private:
 
     std::string& out_;
     TokenKind previous_ = TokenKind::End;
-    bool previous_opens_group_ = false;
+    std::string_view previous_text_;
 };
 
 }

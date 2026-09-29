@@ -176,7 +176,7 @@ void SlowLogParser::parse_attributes(std::string_view rest) {
     while (true) {
         const std::string_view token = next_token();
         if (token.empty()) return;
-        if (!token.ends_with(':')) continue;
+        if (token.size() < 2 || !token.ends_with(':')) continue;
         const std::string_view key = token.substr(0, token.size() - 1);
 
         const std::size_t saved = pos;
@@ -186,39 +186,67 @@ void SlowLogParser::parse_attributes(std::string_view rest) {
             value = {};
         }
 
+        apply_attribute(key, value);
+    }
+}
+
+void SlowLogParser::apply_attribute(std::string_view key, std::string_view value) {
+    switch (key.front()) {
+    case 'Q':
         if (key == "Query_time") {
             if (auto us = parse_microseconds(value)) event_.query_time_us = *us;
-        } else if (key == "Lock_time") {
+        }
+        return;
+    case 'L':
+        if (key == "Lock_time") {
             if (auto us = parse_microseconds(value)) event_.lock_time_us = *us;
-        } else if (key == "Rows_sent") {
+        }
+        return;
+    case 'R':
+        if (key == "Rows_sent") {
             event_.rows_sent = util::parse_uint(value).value_or(0);
         } else if (key == "Rows_examined") {
             event_.rows_examined = util::parse_uint(value).value_or(0);
         } else if (key == "Rows_affected") {
             event_.rows_affected = util::parse_uint(value).value_or(0);
-        } else if (key == "Bytes_sent") {
-            event_.bytes_sent = util::parse_uint(value).value_or(0);
-        } else if (key == "Thread_id") {
-            event_.thread_id = util::parse_uint(value).value_or(event_.thread_id);
-        } else if (key == "Schema") {
-            event_schema_ = unquote_name(value);
-        } else if (key == "Full_scan") {
-            if (yes(value)) event_.set(ExecutionFlag::FullScan);
-        } else if (key == "Filesort") {
-            if (yes(value)) event_.set(ExecutionFlag::Filesort);
-        } else if (key == "Tmp_table") {
-            if (yes(value)) event_.set(ExecutionFlag::TmpTable);
-        } else if (key == "Tmp_table_on_disk") {
-            if (yes(value)) event_.set(ExecutionFlag::TmpTableOnDisk);
-        } else if (key == "Read_rnd_next") {
-            if (positive(value)) event_.set(ExecutionFlag::FullScan);
-        } else if (key == "Sort_scan_count" || key == "Sort_range_count") {
-            if (positive(value)) event_.set(ExecutionFlag::Filesort);
-        } else if (key == "Created_tmp_tables") {
-            if (positive(value)) event_.set(ExecutionFlag::TmpTable);
-        } else if (key == "Created_tmp_disk_tables") {
-            if (positive(value)) event_.set(ExecutionFlag::TmpTableOnDisk);
+        } else if (key == "Read_rnd_next" && positive(value)) {
+            event_.set(ExecutionFlag::FullScan);
         }
+        return;
+    case 'B':
+        if (key == "Bytes_sent") event_.bytes_sent = util::parse_uint(value).value_or(0);
+        return;
+    case 'T':
+        if (key == "Thread_id") {
+            event_.thread_id = util::parse_uint(value).value_or(event_.thread_id);
+        } else if (key == "Tmp_table" && yes(value)) {
+            event_.set(ExecutionFlag::TmpTable);
+        } else if (key == "Tmp_table_on_disk" && yes(value)) {
+            event_.set(ExecutionFlag::TmpTableOnDisk);
+        }
+        return;
+    case 'S':
+        if (key == "Schema") {
+            event_schema_ = unquote_name(value);
+        } else if ((key == "Sort_scan_count" || key == "Sort_range_count") && positive(value)) {
+            event_.set(ExecutionFlag::Filesort);
+        }
+        return;
+    case 'F':
+        if (key == "Full_scan" && yes(value)) {
+            event_.set(ExecutionFlag::FullScan);
+        } else if (key == "Filesort" && yes(value)) {
+            event_.set(ExecutionFlag::Filesort);
+        }
+        return;
+    case 'C':
+        if (key == "Created_tmp_tables" && positive(value)) {
+            event_.set(ExecutionFlag::TmpTable);
+        } else if (key == "Created_tmp_disk_tables" && positive(value)) {
+            event_.set(ExecutionFlag::TmpTableOnDisk);
+        }
+        return;
+    default: return;
     }
 }
 

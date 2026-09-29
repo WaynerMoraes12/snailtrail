@@ -98,6 +98,17 @@ void QueryClass::merge(const QueryClass& other) {
     if (empty || other.worst_.query_time_us > worst_.query_time_us) worst_ = other.worst_;
 }
 
+void QueryClass::rename_database(std::string_view from, std::string_view to) {
+    const auto it = std::find_if(databases_.begin(), databases_.end(),
+                                 [&](const auto& entry) { return entry.first == from; });
+    if (it != databases_.end()) {
+        const std::uint64_t n = it->second;
+        databases_.erase(it);
+        count(databases_, to, n);
+    }
+    if (worst_.database == from) worst_.database = to;
+}
+
 std::uint64_t QueryClass::percentile_us(double q) const noexcept {
     if (calls() == 0) return 0;
     return std::clamp(latency_.percentile(q), query_time_.min(), query_time_.max());

@@ -28,6 +28,7 @@ class Aggregator {
 public:
     void add(const log::QueryEvent& event);
     void merge(Aggregator&& other);
+    void rename_database(std::string_view from, std::string_view to);
 
     [[nodiscard]] const Totals& totals() const noexcept { return totals_; }
     [[nodiscard]] std::size_t class_count() const noexcept { return classes_.size(); }

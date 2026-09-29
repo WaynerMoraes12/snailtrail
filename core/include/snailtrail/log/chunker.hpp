@@ -17,6 +17,10 @@ std::size_t find_event_start(std::string_view log, std::size_t from) noexcept;
 std::string_view last_use_database(std::string_view text) noexcept;
 
 std::vector<LogChunk> split_log(std::string_view log, std::size_t parts,
-                                std::size_t min_chunk_bytes = 256 * 1024);
+                                std::size_t min_chunk_bytes = 256 * 1024,
+                                bool resolve_databases = true);
+
+std::string_view inherited_database(const std::vector<std::string_view>& last_use_per_chunk,
+                                    std::size_t chunk) noexcept;
 
 }

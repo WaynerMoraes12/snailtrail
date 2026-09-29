@@ -43,6 +43,14 @@ sequenceDiagram
   nothing is locked. `std::jthread` joins on scope exit, and an exception thrown in a
   worker is captured as an `std::exception_ptr` and rethrown on the calling thread after
   every worker has finished.
+- **The database, resolved after the fact.** A chunk cannot know which database is in
+  effect before its first `use db;` line without reading every chunk before it. Instead of
+  a pre-scan, chunks after the first start with a sentinel database; when all workers are
+  done, each partial aggregator renames the sentinel to the database inherited from the
+  chunks before it (`Aggregator::rename_database`) — a handful of tally updates instead of
+  a second pass over the file. Only `--database` filtering needs the database *while*
+  parsing; that mode pre-scans in parallel and synchronises the workers with a C++20
+  `std::latch` before they parse.
 - **Deterministic output.** Partial results merge in chunk order and ties in the ranking
   break on the class id, so a report does not depend on the thread count or the hash-map
   iteration order. `ResultsDoNotDependOnTheThreadCount` compares one thread with eight,

@@ -32,6 +32,7 @@ public:
 
     void add(const log::QueryEvent& event);
     void merge(const QueryClass& other);
+    void rename_database(std::string_view from, std::string_view to);
 
     [[nodiscard]] std::uint64_t id() const noexcept { return id_; }
     [[nodiscard]] std::string id_hex() const;

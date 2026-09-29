@@ -81,18 +81,20 @@ user space. It is RAII and move-only; an empty file is a valid, empty view; fail
 ## Parallel parsing: the chunker
 
 A log is sequential, but events are independent — except for one piece of state, the
-current database. `split_log(log, parts)`:
+current database. `split_log(log, parts)` cuts the log at `size / parts` intervals,
+moving each cut forward to the next event start (`# User@Host:`, backed up to its
+`# Time:` line if it has one). Logs smaller than `min_chunk_bytes` per part are not split:
+below that, starting threads costs more than it saves.
 
-1. cuts the log at `size / parts` intervals, moving each cut forward to the next event
-   start (`# User@Host:`, backed up to its `# Time:` line if it has one);
-2. finds, for every chunk, the last `use db;` it contains (a backwards search), so each
-   chunk knows the database in effect **before** its first line: the last `use` of the
-   closest preceding chunk that has one.
+The database in effect at the start of a chunk is the last `use db;` of the closest
+preceding chunk that has one. `split_log` can find it with a backwards search per chunk
+(`last_use_database`), and each chunk parsed with that seed yields exactly the events a
+sequential pass would have produced — the test suite checks that on 6 000 generated
+events split 16 ways.
 
-Each worker then parses its chunk with its own `SlowLogParser` seeded with that database,
-and gets exactly the events a sequential pass would have produced — the test suite checks
-that on 6 000 generated events split 16 ways. Logs smaller than `min_chunk_bytes` per part
-are not split: below that, starting threads costs more than it saves.
+That search is a whole extra pass, though: a server that uses one database writes a single
+`use` at the top of the file, so every chunk is scanned end to end for nothing. The
+[analyzer](../analysis) therefore avoids it (see there); `split_log(..., false)` skips it.
 
 ## Generator
 

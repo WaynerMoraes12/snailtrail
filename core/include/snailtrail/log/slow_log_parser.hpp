@@ -56,6 +56,7 @@ private:
     void emit();
     void parse_user_host(std::string_view rest);
     void parse_attributes(std::string_view rest);
+    void apply_attribute(std::string_view key, std::string_view value);
     bool parse_pre_body(std::string_view line);
     [[nodiscard]] static bool is_server_banner(std::string_view line) noexcept;
 
