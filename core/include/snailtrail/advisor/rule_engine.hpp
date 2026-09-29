@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "snailtrail/advisor/finding.hpp"
+#include "snailtrail/advisor/query_facts.hpp"
 #include "snailtrail/advisor/rule.hpp"
 #include "snailtrail/schema/catalog.hpp"
 #include "snailtrail/stats/query_class.hpp"
@@ -33,6 +34,11 @@ public:
     [[nodiscard]] std::vector<Finding> advise(std::string_view sql,
                                               const schema::SchemaCatalog* catalog = nullptr,
                                               const stats::QueryClass* stats = nullptr) const;
+
+    [[nodiscard]] std::vector<Finding> advise(std::string_view sql, const sql::Statement* statement,
+                                              const QueryFacts* facts, std::string_view parse_error,
+                                              const schema::SchemaCatalog* catalog,
+                                              const stats::QueryClass* stats) const;
 
 private:
     std::vector<std::unique_ptr<Rule>> rules_;

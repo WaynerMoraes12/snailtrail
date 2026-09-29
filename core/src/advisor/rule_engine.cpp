@@ -77,18 +77,23 @@ std::vector<const Rule*> RuleEngine::rules() const {
 
 std::vector<Finding> RuleEngine::advise(std::string_view sql, const schema::SchemaCatalog* catalog,
                                         const stats::QueryClass* stats) const {
-    std::vector<Finding> out;
     std::string error;
     const sql::StatementPtr statement = sql::try_parse(sql, &error);
+    if (!statement) return advise(sql, nullptr, nullptr, error, catalog, stats);
+    const QueryFacts facts = collect_facts(*statement, catalog);
+    return advise(sql, statement.get(), &facts, {}, catalog, stats);
+}
 
-    QueryFacts facts;
-    RuleContext context{sql, statement.get(), nullptr, catalog, stats};
-    if (statement) {
-        facts = collect_facts(*statement, catalog);
-        context.facts = &facts;
-    } else if (sql::is_dml(sql::fingerprint(sql).kind) && is_enabled("ST000")) {
+std::vector<Finding> RuleEngine::advise(std::string_view sql, const sql::Statement* statement,
+                                        const QueryFacts* facts, std::string_view parse_error,
+                                        const schema::SchemaCatalog* catalog,
+                                        const stats::QueryClass* stats) const {
+    std::vector<Finding> out;
+    const RuleContext context{sql, statement, facts, catalog, stats};
+    if (statement == nullptr && sql::is_dml(sql::fingerprint(sql).kind) && is_enabled("ST000")) {
         out.push_back(Finding{"ST000", "unparsed", Severity::Info,
-                              "Statement not fully understood: structural checks skipped", error,
+                              "Statement not fully understood: structural checks skipped",
+                              std::string(parse_error),
                               "Metric-based checks still apply. Please report the statement if it is valid MySQL."});
     }
 

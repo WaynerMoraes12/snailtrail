@@ -23,10 +23,19 @@ set(SNAILTRAIL_TEST_SOURCES
     test_chunker.cpp
     test_stats.cpp
     test_advisor.cpp
+    test_analyzer.cpp
+    test_reporters.cpp
 )
+
+if(TARGET snailtrail_cli_lib)
+    list(APPEND SNAILTRAIL_TEST_SOURCES test_cli.cpp)
+endif()
 
 add_executable(snailtrail_tests ${SNAILTRAIL_TEST_SOURCES})
 target_link_libraries(snailtrail_tests PRIVATE snailtrail::core GTest::gtest_main)
+if(TARGET snailtrail_cli_lib)
+    target_link_libraries(snailtrail_tests PRIVATE snailtrail_cli_lib)
+endif()
 target_compile_definitions(snailtrail_tests PRIVATE
     SNAILTRAIL_SAMPLES_DIR="${PROJECT_SOURCE_DIR}/samples")
 snailtrail_set_warnings(snailtrail_tests)

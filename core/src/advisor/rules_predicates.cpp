@@ -99,7 +99,7 @@ void NonSargablePredicateRule::check(const RuleContext& context, std::vector<Fin
 }
 
 ImplicitConversionRule::ImplicitConversionRule()
-    : Rule({"ST005", "implicit-conversion", "String columns compared with numbers (needs the schema)",
+    : Rule({"ST005", "implicit-conversion", "String columns compared with numbers",
             Severity::Warning, true, true}) {}
 
 void ImplicitConversionRule::check(const RuleContext& context, std::vector<Finding>& out) const {

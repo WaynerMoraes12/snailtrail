@@ -28,6 +28,12 @@ add_library(snailtrail_core STATIC
     src/advisor/rules_predicates.cpp
     src/advisor/rules_metrics.cpp
     src/advisor/rule_engine.cpp
+    src/analysis/report.cpp
+    src/analysis/analyzer.cpp
+    src/report/reporter.cpp
+    src/report/text_reporter.cpp
+    src/report/json_reporter.cpp
+    src/report/markdown_reporter.cpp
 )
 add_library(snailtrail::core ALIAS snailtrail_core)
 

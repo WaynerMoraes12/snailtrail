@@ -7,7 +7,7 @@
 namespace snailtrail::advisor {
 
 RowsExaminedRatioRule::RowsExaminedRatioRule()
-    : Rule({"ST014", "rows-examined-ratio", "Rows examined far exceeding rows returned (needs the slow log)",
+    : Rule({"ST014", "rows-examined-ratio", "Rows examined far exceeding rows returned",
             Severity::Warning, false, false, true}) {}
 
 void RowsExaminedRatioRule::check(const RuleContext& context, std::vector<Finding>& out) const {
@@ -37,11 +37,12 @@ void RowsExaminedRatioRule::check(const RuleContext& context, std::vector<Findin
                   "summary table up to date instead.";
     }
     out.push_back(finding(severity, std::move(title), std::move(detail),
-                          "See the index advice for this query (ST001), or EXPLAIN the worst sample."));
+                          "The other findings for this query explain the cause when it is visible in the SQL; "
+                          "otherwise run EXPLAIN on the worst sample to see which table is scanned."));
 }
 
 TempTablesOnDiskRule::TempTablesOnDiskRule()
-    : Rule({"ST015", "tmp-tables-on-disk", "Internal temporary tables spilling to disk (needs the slow log)",
+    : Rule({"ST015", "tmp-tables-on-disk", "Internal temporary tables spilling to disk",
             Severity::Warning, false, false, true}) {}
 
 void TempTablesOnDiskRule::check(const RuleContext& context, std::vector<Finding>& out) const {

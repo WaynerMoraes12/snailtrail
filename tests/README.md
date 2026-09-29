@@ -17,6 +17,8 @@ parallel and a failure names the exact case.
 | `test_chunker.cpp` | event boundaries, chunked parsing equals sequential parsing, memory mapping, the generator |
 | `test_stats.cpp` | histogram tiling and accuracy, summaries, query classes, bit-identical chunked aggregation |
 | `test_advisor.cpp` | fact collection, every rule's positive and negative cases, the index advisor against a real schema, the engine |
+| `test_analyzer.cpp` | ranking, advice, thread-count independence, options, file/stream/text agreement |
+| `test_reporters.cpp` | text layout and width, colours, the JSON schema, Markdown, the factory |
 
 ## GoogleTest
 
