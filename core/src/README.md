@@ -10,3 +10,4 @@ design of its module: what problem it solves, the decisions behind it and the tr
 | [`sql/`](sql) | lexer, fingerprints, AST and parser |
 | [`schema/`](schema) | schema catalog |
 | [`log/`](log) | slow-log parsing, memory mapping, chunking, generator |
+| [`stats/`](stats) | histograms, query classes, aggregation |

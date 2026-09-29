@@ -15,6 +15,7 @@ parallel and a failure names the exact case.
 | `test_schema.cpp` | type categories, loading a mysqldump file, ALTER/CREATE INDEX replay, index matching |
 | `test_slow_log_parser.cpp` | MySQL 8 (with `log_slow_extra`), Percona and MariaDB formats, time formats, restarts, CRLF |
 | `test_chunker.cpp` | event boundaries, chunked parsing equals sequential parsing, memory mapping, the generator |
+| `test_stats.cpp` | histogram tiling and accuracy, summaries, query classes, bit-identical chunked aggregation |
 
 ## GoogleTest
 

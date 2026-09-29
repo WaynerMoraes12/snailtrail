@@ -16,6 +16,9 @@ add_library(snailtrail_core STATIC
     src/log/mapped_file.cpp
     src/log/chunker.cpp
     src/log/generator.cpp
+    src/stats/histogram.cpp
+    src/stats/query_class.cpp
+    src/stats/aggregator.cpp
 )
 add_library(snailtrail::core ALIAS snailtrail_core)
 

@@ -9,3 +9,4 @@ matching folder under [`core/src/`](../../src) explains how the module works.
 | [`sql/`](sql) | `snailtrail::sql` | tokens, lexer, fingerprints, AST, parser, SQL writer |
 | [`schema/`](schema) | `snailtrail::schema` | the schema catalog |
 | [`log/`](log) | `snailtrail::log` | query events, slow-log parser, mapped files, chunker, generator |
+| [`stats/`](stats) | `snailtrail::stats` | histogram, summaries, query classes, aggregator |
