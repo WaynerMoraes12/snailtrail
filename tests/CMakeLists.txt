@@ -14,6 +14,8 @@ endif()
 set(SNAILTRAIL_TEST_SOURCES
     test_strings.cpp
     test_json_writer.cpp
+    test_lexer.cpp
+    test_fingerprint.cpp
 )
 
 add_executable(snailtrail_tests ${SNAILTRAIL_TEST_SOURCES})

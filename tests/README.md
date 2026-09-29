@@ -8,6 +8,8 @@ parallel and a failure names the exact case.
 |---|---|
 | `test_strings.cpp` | string helpers, formatting, civil time, FNV-1a reference vectors, hex |
 | `test_json_writer.cpp` | structure, indentation, escaping, non-finite numbers, misuse |
+| `test_lexer.cpp` | every token kind, comments, executable comments, garbage input |
+| `test_fingerprint.cpp` | normalisation rules, IN and VALUES collapsing, statement kinds |
 
 ## GoogleTest
 

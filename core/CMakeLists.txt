@@ -2,6 +2,11 @@ add_library(snailtrail_core STATIC
     src/util/strings.cpp
     src/util/hash.cpp
     src/util/json_writer.cpp
+    src/sql/token.cpp
+    src/sql/lexer.cpp
+    src/sql/keywords.cpp
+    src/sql/statement_kind.cpp
+    src/sql/fingerprint.cpp
 )
 add_library(snailtrail::core ALIAS snailtrail_core)
 

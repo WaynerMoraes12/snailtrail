@@ -7,3 +7,4 @@ design of its module: what problem it solves, the decisions behind it and the tr
 | Folder | Module |
 |---|---|
 | [`util/`](util) | shared helpers |
+| [`sql/`](sql) | lexer and fingerprints |

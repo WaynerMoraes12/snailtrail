@@ -6,3 +6,4 @@ matching folder under [`core/src/`](../../src) explains how the module works.
 | Folder | Namespace | Headers |
 |---|---|---|
 | [`util/`](util) | `snailtrail::util` | strings, hash, JSON writer |
+| [`sql/`](sql) | `snailtrail::sql` | tokens, lexer, keywords, statement kinds, fingerprints |

@@ -28,7 +28,7 @@ ctest --test-dir build --output-on-failure
 
 | Folder | What lives there |
 |---|---|
-| [`core/`](core) | the C++20 library |
+| [`core/`](core) | the C++20 library: SQL lexer, fingerprints and everything built on them |
 | [`tests/`](tests) | the GoogleTest suite |
 | [`cmake/`](cmake) | shared compiler settings |
 | [`docker/`](docker) | container images |
