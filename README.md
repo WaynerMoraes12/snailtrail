@@ -30,6 +30,8 @@ ctest --test-dir build --output-on-failure
 |---|---|
 | [`core/`](core) | the C++20 library: parsing, statistics, the advisor, reports |
 | [`cli/`](cli) | the `snailtrail` command-line tool |
+| [`bindings/`](bindings) | the pybind11 extension module |
+| [`python/`](python) | the `snailtrail` Python package |
 | [`tests/`](tests) | the GoogleTest suite |
 | [`samples/`](samples) | example schema and slow logs |
 | [`cmake/`](cmake) | shared compiler settings |
