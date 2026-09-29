@@ -13,6 +13,8 @@ parallel and a failure names the exact case.
 | `test_parser.cpp` | every statement and clause, precedence, mysqldump DDL, scripts, error positions, pathological nesting |
 | `test_sql_writer.cpp` | SQL round trips, minimal parenthesisation, identifier quoting, the tree printer |
 | `test_schema.cpp` | type categories, loading a mysqldump file, ALTER/CREATE INDEX replay, index matching |
+| `test_slow_log_parser.cpp` | MySQL 8 (with `log_slow_extra`), Percona and MariaDB formats, time formats, restarts, CRLF |
+| `test_chunker.cpp` | event boundaries, chunked parsing equals sequential parsing, memory mapping, the generator |
 
 ## GoogleTest
 

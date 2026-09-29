@@ -12,6 +12,10 @@ add_library(snailtrail_core STATIC
     src/sql/sql_writer.cpp
     src/sql/ast_printer.cpp
     src/schema/catalog.cpp
+    src/log/slow_log_parser.cpp
+    src/log/mapped_file.cpp
+    src/log/chunker.cpp
+    src/log/generator.cpp
 )
 add_library(snailtrail::core ALIAS snailtrail_core)
 
