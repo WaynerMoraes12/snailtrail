@@ -10,3 +10,7 @@ Public headers of the `snailtrail::sql` module. Implementation notes:
 | `keywords.hpp` | `is_reserved_word()`, `is_operator_keyword()`, `is_aggregate_function()` |
 | `statement_kind.hpp` | `StatementKind`, `classify_statement()`, `is_dml()` |
 | `fingerprint.hpp` | `Fingerprint`, `Fingerprinter`, `fingerprint()` |
+| `ast.hpp` | expression nodes (`Literal`, `ColumnRef`, `BinaryExpr`, `InExpr`, `FunctionCall`, ...), statement nodes (`SelectStatement`, `InsertStatement`, `UpdateStatement`, `DeleteStatement`, `CreateTableStatement`, `AlterTableStatement`, `OtherStatement`), `ExprVisitor`, `RecursiveExprVisitor`, `StatementVisitor` |
+| `parser.hpp` | `Parser`, `ParseError`, `parse()`, `try_parse()` |
+| `sql_writer.hpp` | `to_sql()`, `quote_identifier()` |
+| `ast_printer.hpp` | `AstNode`, `describe()`, `render_tree()`, `dump_ast()` |

@@ -16,7 +16,7 @@ core/
 | Module | Responsibility |
 |---|---|
 | [`util`](src/util) | strings, human-readable formatting, civil time, FNV-1a, a streaming JSON writer |
-| [`sql`](src/sql) | lexer, statement classification and query fingerprints |
+| [`sql`](src/sql) | lexer, fingerprints, AST, recursive-descent parser, SQL writer |
 
 ## Conventions
 

@@ -16,6 +16,8 @@ set(SNAILTRAIL_TEST_SOURCES
     test_json_writer.cpp
     test_lexer.cpp
     test_fingerprint.cpp
+    test_parser.cpp
+    test_sql_writer.cpp
 )
 
 add_executable(snailtrail_tests ${SNAILTRAIL_TEST_SOURCES})

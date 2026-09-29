@@ -9,7 +9,7 @@ extra=""
 case "$compiler" in
     gcc) cxx=g++ ;;
     clang) cxx=clang++ ;;
-    asan) cxx=clang++; extra="-DSNAILTRAIL_SANITIZE=ON" ;;
+    asan) cxx=g++; extra="-DSNAILTRAIL_SANITIZE=ON" ;;
     *) echo "usage: check.sh [gcc|clang|asan] [Debug|Release]" >&2; exit 2 ;;
 esac
 

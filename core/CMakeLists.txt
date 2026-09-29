@@ -7,6 +7,10 @@ add_library(snailtrail_core STATIC
     src/sql/keywords.cpp
     src/sql/statement_kind.cpp
     src/sql/fingerprint.cpp
+    src/sql/ast.cpp
+    src/sql/parser.cpp
+    src/sql/sql_writer.cpp
+    src/sql/ast_printer.cpp
 )
 add_library(snailtrail::core ALIAS snailtrail_core)
 

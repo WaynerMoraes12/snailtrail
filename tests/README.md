@@ -10,6 +10,8 @@ parallel and a failure names the exact case.
 | `test_json_writer.cpp` | structure, indentation, escaping, non-finite numbers, misuse |
 | `test_lexer.cpp` | every token kind, comments, executable comments, garbage input |
 | `test_fingerprint.cpp` | normalisation rules, IN and VALUES collapsing, statement kinds |
+| `test_parser.cpp` | every statement and clause, precedence, mysqldump DDL, scripts, error positions, pathological nesting |
+| `test_sql_writer.cpp` | SQL round trips, minimal parenthesisation, identifier quoting, the tree printer |
 
 ## GoogleTest
 

@@ -12,7 +12,7 @@ Helpers for building and checking the project.
 |---|---|---|
 | `gcc` (default) | GCC 14 | |
 | `clang` | Clang 19 | |
-| `asan` | Clang 19 | AddressSanitizer + UndefinedBehaviorSanitizer |
+| `asan` | GCC 14 | AddressSanitizer + UndefinedBehaviorSanitizer |
 
 Each combination gets its own build tree (`/build/<compiler>-<type>`), so switching
 between them never forces a full rebuild.

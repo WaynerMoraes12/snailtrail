@@ -9,6 +9,10 @@ Everything SnailTrail knows about SQL text.
 | `keywords.cpp` | the few word lists the fingerprinter and parser need |
 | `statement_kind.cpp` | SELECT / INSERT / UPDATE / DDL / ... classification |
 | `fingerprint.cpp` | query fingerprints and class ids |
+| `ast.cpp` | the abstract syntax tree: expression and statement nodes, `RecursiveExprVisitor` |
+| `parser.cpp` | the recursive-descent parser |
+| `sql_writer.cpp` | AST → SQL text, with only the parentheses precedence requires |
+| `ast_printer.cpp` | AST → a box-drawn tree (`snailtrail parse`) |
 
 ## Lexer
 
@@ -84,3 +88,146 @@ worker thread owns one.
 (`(SELECT ...) UNION (SELECT ...)`). For `WITH`, it walks past the CTE definitions — which
 sit inside parentheses — to the first DML word at depth 0, so
 `WITH recent AS (SELECT ...) DELETE FROM ...` is a DELETE.
+
+## Abstract syntax tree
+
+The fingerprint answers *"which queries are the same?"*. The advisor needs more: *which
+columns are compared to constants, which tables are joined on what, is there a function
+around that column?* That takes a real parse.
+
+```mermaid
+classDiagram
+    direction LR
+    class Expr {
+        <<abstract>>
+        +accept(ExprVisitor&)*
+    }
+    class ExprVisitor {
+        <<interface>>
+        +visit(const Literal&)*
+        +visit(const ColumnRef&)*
+        +visit(const BinaryExpr&)*
+        +visit(...)*
+    }
+    class RecursiveExprVisitor
+    Expr <|-- Literal
+    Expr <|-- ColumnRef
+    Expr <|-- UnaryExpr
+    Expr <|-- BinaryExpr
+    Expr <|-- InExpr
+    Expr <|-- BetweenExpr
+    Expr <|-- IsExpr
+    Expr <|-- FunctionCall
+    Expr <|-- CaseExpr
+    Expr <|-- CastExpr
+    Expr <|-- IntervalExpr
+    Expr <|-- SubqueryExpr
+    Expr <|-- RowExpr
+    BinaryExpr o-- "2" Expr
+    FunctionCall o-- "*" Expr
+    ExprVisitor <|.. RecursiveExprVisitor
+
+    class Statement {
+        <<abstract>>
+        +kind() StatementKind*
+        +accept(StatementVisitor&)*
+    }
+    Statement <|-- SelectStatement
+    Statement <|-- InsertStatement
+    Statement <|-- UpdateStatement
+    Statement <|-- DeleteStatement
+    Statement <|-- CreateTableStatement
+    Statement <|-- AlterTableStatement
+    Statement <|-- OtherStatement
+    SelectStatement o-- "*" Expr
+    SubqueryExpr o-- SelectStatement
+```
+
+Design decisions:
+
+- **Composite + Visitor.** Nodes are a closed class hierarchy; operations over them
+  (writing SQL, drawing the tree, computing precedence, collecting advisor facts) are
+  visitors. Adding an *operation* never touches the nodes — and that is the axis that
+  changes here: the node set follows MySQL's grammar, the operations follow the product.
+  `RecursiveExprVisitor` walks children by default, so a visitor that only cares about
+  columns overrides one method.
+- **Immutable, owned by `unique_ptr`.** Nodes are built once and never modified; accessors
+  are `const`. Copy and move are deleted on the polymorphic bases, so nothing can be
+  sliced. Clause aggregates with no invariant (`TableRef`, `Join`, `OrderItem`, `Limit`)
+  are plain structs.
+- **Only the parser builds statements.** Statement classes expose `const` accessors and
+  declare `friend class Parser`: consumers see a read-only tree, and there is no
+  half-built public setter API to misuse.
+- **`CREATE INDEX` is an `AlterTableStatement`.** It *is* `ALTER TABLE ... ADD INDEX`, and
+  the schema catalog then handles one statement type instead of two.
+- **INSERT rows are counted, not parsed.** A bulk insert can carry 10 000 rows; the advisor
+  needs the count, not 10 000 expression trees.
+
+## Parser
+
+Recursive descent for statements, **precedence climbing** for expressions, following
+[MySQL's operator precedence](https://dev.mysql.com/doc/refman/8.4/en/operator-precedence.html):
+
+| Level | Operators |
+|---|---|
+| 1 | `:=` (right-associative) |
+| 2 | `OR`, `\|\|` |
+| 3 | `XOR` |
+| 4 | `AND`, `&&` |
+| 5 | `NOT` |
+| 6 | `=` `<=>` `<>` `!=` `<` `<=` `>` `>=` `IS` `LIKE` `REGEXP` `IN` `BETWEEN` |
+| 7–9 | `\|`, `&`, `<<` `>>` |
+| 10–12 | `+` `-`, `*` `/` `DIV` `%` `MOD`, `^` |
+| 13 | unary `-` `+` `~` `!` `BINARY` |
+| 14 | `->` `->>` `COLLATE` |
+
+Coverage: SELECT (CTEs, `DISTINCT`, joins of every kind, derived tables, subqueries with
+`EXISTS`/`IN`/`ANY`/`ALL`, `GROUP BY ... WITH ROLLUP`, `HAVING`, window functions,
+`UNION`/`EXCEPT`/`INTERSECT`, every `LIMIT` form, `FOR UPDATE`/`FOR SHARE`/`LOCK IN SHARE
+MODE`, index hints), INSERT/REPLACE (`VALUES`, `SET`, `SELECT`, `ON DUPLICATE KEY UPDATE`),
+UPDATE and DELETE (single- and multi-table, `USING`, `ORDER BY ... LIMIT`), and the DDL a
+`mysqldump --no-data` produces: `CREATE TABLE` with every column attribute and key type,
+`CREATE INDEX`, `ALTER TABLE ADD/DROP INDEX`. Special function syntaxes are handled:
+`CAST(x AS t)`, `CONVERT(x USING cs)`, `EXTRACT(u FROM x)`, `TRIM(LEADING c FROM x)`,
+`SUBSTRING(x FROM a FOR b)`, `POSITION(a IN b)`, `GROUP_CONCAT(... ORDER BY ... SEPARATOR
+...)`, `MATCH(...) AGAINST(...)`, niladic `CURRENT_TIMESTAMP`, typed literals
+`DATE '2024-01-01'`.
+
+Behaviour worth knowing:
+
+- **Errors carry a position.** `ParseError::offset()` points at the offending token:
+  `expected an expression but found end of statement at offset 21`.
+- **Scripts keep going.** `parse_script()` records an error, skips to the next `;` and
+  continues, so one exotic statement in a 3 000-line dump costs one table, not the file.
+- **Keywords that are column names stay column names.** `status`, `date`, `comment`,
+  `level` and even `end` parse as columns; only MySQL's reserved words need backticks,
+  exactly as in MySQL.
+- **Bounded recursion.** Every recursive production holds a `DepthGuard`; 5 000 nested
+  parentheses or `NOT NOT NOT ...` produce a `ParseError`, never a stack overflow. The
+  tests run this under AddressSanitizer.
+- **Deliberate gaps.** Stored-program bodies, `SOUNDS LIKE`, `MEMBER OF` and `JSON_TABLE`
+  are not parsed; such a query still gets a fingerprint and metrics, only the structural
+  advice is skipped.
+
+## SQL writer and tree printer
+
+`to_sql()` turns a tree back into SQL. Each node reports its precedence (a visitor, again)
+and a child is parenthesised only when its precedence is lower than its parent requires —
+`a - (b - c)` keeps its parentheses, `(a - b) - c` loses them. Identifiers are backticked
+only when needed (reserved words, spaces, all digits). The advisor uses it to quote the
+exact expression it is talking about; the tests use it for round trips:
+`to_sql(parse(to_sql(parse(x)))) == to_sql(parse(x))`.
+
+`dump_ast()` draws the tree:
+
+```
+SELECT
+├── items
+│   └── Column a
+├── FROM
+│   └── Table t
+└── WHERE
+    └── =
+        ├── Column b
+        └── Number 1
+```
