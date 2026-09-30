@@ -20,7 +20,7 @@ sequenceDiagram
     participant A as Analyzer
     participant M as MappedFile
     participant K as split_log
-    participant W as Worker threads (jthread)
+    participant W as Worker threads
     participant G as Aggregator
     participant R as RuleEngine
     C->>A: analyze_file(path)
@@ -40,9 +40,10 @@ sequenceDiagram
 ```
 
 - **Parallelism without shared state.** Each worker owns its parser and its aggregator;
-  nothing is locked. `std::jthread` joins on scope exit, and an exception thrown in a
-  worker is captured as an `std::exception_ptr` and rethrown on the calling thread after
-  every worker has finished.
+  nothing is locked. A small RAII `Workers` owns the threads and joins them on scope exit
+  (`std::jthread` would do the same, but Apple's libc++ still ships it as experimental).
+  An exception thrown in a worker is captured as an `std::exception_ptr` and rethrown on
+  the calling thread after every worker has finished.
 - **The database, resolved after the fact.** A chunk cannot know which database is in
   effect before its first `use db;` line without reading every chunk before it. Instead of
   a pre-scan, chunks after the first start with a sentinel database; when all workers are

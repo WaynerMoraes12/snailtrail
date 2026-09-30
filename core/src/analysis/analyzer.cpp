@@ -4,6 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <exception>
+#include <functional>
 #include <latch>
 #include <string>
 #include <thread>
@@ -27,6 +28,24 @@ constexpr std::string_view unknown_database = "\x01unknown-database";
 double seconds_since(Clock::time_point start) {
     return std::chrono::duration<double>(Clock::now() - start).count();
 }
+
+class Workers {
+public:
+    explicit Workers(std::size_t count) { threads_.reserve(count); }
+    Workers(const Workers&) = delete;
+    Workers& operator=(const Workers&) = delete;
+    ~Workers() {
+        for (auto& t : threads_) t.join();
+    }
+
+    template <typename F>
+    void start(F& work, std::size_t index) {
+        threads_.emplace_back(std::ref(work), index);
+    }
+
+private:
+    std::vector<std::thread> threads_;
+};
 
 double sort_value(const stats::QueryClass& c, SortKey key) {
     switch (key) {
@@ -96,9 +115,8 @@ stats::Aggregator Analyzer::aggregate(std::string_view text, RunInfo& run) const
     if (chunks.size() == 1) {
         work(0);
     } else {
-        std::vector<std::jthread> workers;
-        workers.reserve(chunks.size());
-        for (std::size_t i = 0; i < chunks.size(); ++i) workers.emplace_back(work, i);
+        Workers workers(chunks.size());
+        for (std::size_t i = 0; i < chunks.size(); ++i) workers.start(work, i);
     }
     for (const auto& e : errors) {
         if (e) std::rethrow_exception(e);

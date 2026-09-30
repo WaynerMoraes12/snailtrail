@@ -21,6 +21,12 @@ One strict warning set per compiler family, applied target by target so third-pa
 `-DSNAILTRAIL_WARNINGS_AS_ERRORS=ON` turns them into errors; CI and `scripts/check.sh`
 always build that way.
 
+Every MSVC target, third-party ones included, also gets `/utf-8` (the sources are UTF-8
+without a BOM, and would otherwise be read in the system code page), `/Zc:preprocessor`
+(the conforming preprocessor: the traditional one mangles raw string literals passed to
+GoogleTest's macros) and `/Zc:__cplusplus` (so `__cplusplus` reports C++20 instead of
+`199711L`).
+
 ## `snailtrail_enable_sanitizers()`
 
 With `-DSNAILTRAIL_SANITIZE=ON`, every target declared after the call is built and linked

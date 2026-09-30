@@ -25,7 +25,7 @@ option(SNAILTRAIL_STATIC "Link the CLI statically" OFF)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(SnailTrailHelpers)
 
-add_compile_options($<$<CXX_COMPILER_ID:MSVC>:/utf-8>)
+add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8;/Zc:preprocessor;/Zc:__cplusplus>")
 add_compile_definitions($<$<CXX_COMPILER_ID:MSVC>:_CRT_SECURE_NO_WARNINGS>)
 snailtrail_enable_sanitizers()
 
