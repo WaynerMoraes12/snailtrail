@@ -81,6 +81,7 @@ std::vector<IndexCandidate> suggest_indexes(const QueryFacts& facts,
     }
 
     for (const TableUse* table : facts.base_tables()) {
+        if (table->in_system_schema()) continue;
         std::vector<std::string> equality;
         std::vector<std::string> join_equality;
         std::string range;

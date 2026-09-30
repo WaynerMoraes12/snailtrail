@@ -46,8 +46,10 @@ struct TableUse {
     std::string name;
     std::string alias;
     bool derived = false;
+    std::string schema;
 
     [[nodiscard]] const std::string& ref() const noexcept { return alias.empty() ? name : alias; }
+    [[nodiscard]] bool in_system_schema() const noexcept;
 };
 
 struct OrGroup {

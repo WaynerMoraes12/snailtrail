@@ -17,6 +17,11 @@ bool ColumnUse::same_as(const ColumnUse& other) const noexcept {
     return util::iequals(ref, other.ref) && util::iequals(column, other.column);
 }
 
+bool TableUse::in_system_schema() const noexcept {
+    return util::iequals(schema, "information_schema") || util::iequals(schema, "performance_schema") ||
+           util::iequals(schema, "mysql") || util::iequals(schema, "sys");
+}
+
 const TableUse* QueryFacts::find_table(std::string_view ref) const noexcept {
     for (const TableUse& t : tables) {
         if (util::iequals(t.ref(), ref)) return &t;
@@ -166,7 +171,7 @@ public:
 
     void visit(const sql::InsertStatement& s) override {
         facts_.kind = s.kind();
-        facts_.tables.push_back({s.table().name, {}, false});
+        facts_.tables.push_back({s.table().name, {}, false, s.table().schema});
     }
 
     void visit(const sql::CreateTableStatement& s) override { facts_.kind = s.kind(); }
@@ -175,9 +180,9 @@ public:
 
 private:
     void add_tables(const std::vector<sql::TableRef>& from, const std::vector<sql::Join>& joins) {
-        for (const auto& t : from) facts_.tables.push_back({t.name, t.alias, t.is_derived()});
+        for (const auto& t : from) facts_.tables.push_back({t.name, t.alias, t.is_derived(), t.schema});
         for (const auto& j : joins) {
-            facts_.tables.push_back({j.table.name, j.table.alias, j.table.is_derived()});
+            facts_.tables.push_back({j.table.name, j.table.alias, j.table.is_derived(), j.table.schema});
         }
     }
 

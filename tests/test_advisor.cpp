@@ -176,6 +176,19 @@ TEST(MissingIndex, HandlesRangesPrefixLikeAndWrites) {
     EXPECT_FALSE(rule(advise("SELECT id FROM customers WHERE phone = 551199"), "ST001"));
 }
 
+TEST(MissingIndex, NeverAdvisesOnSystemSchemas) {
+    EXPECT_FALSE(rule(advise("SELECT table_name AS name FROM information_schema.tables "
+                             "WHERE table_schema = 'shop' AND table_type = 'BASE TABLE' ORDER BY table_name"),
+                      "ST001"));
+    EXPECT_FALSE(rule(advise("SELECT * FROM performance_schema.events_statements_summary_by_digest "
+                             "WHERE schema_name = 'shop' ORDER BY sum_timer_wait DESC"),
+                      "ST001"));
+    EXPECT_FALSE(rule(advise("SELECT user FROM mysql.user WHERE host = '%'"), "ST001"));
+    const auto f = facts("SELECT * FROM information_schema.tables t JOIN shop.orders o ON o.id = t.x");
+    EXPECT_TRUE(f.tables[0].in_system_schema());
+    EXPECT_FALSE(f.tables[1].in_system_schema());
+}
+
 TEST(MissingIndex, SaysWhenTheSchemaWasNotChecked) {
     const auto f = rule(advise("SELECT id FROM orders WHERE status = 'paid'", nullptr), "ST001");
     ASSERT_TRUE(f);
