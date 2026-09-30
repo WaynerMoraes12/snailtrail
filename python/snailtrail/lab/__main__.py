@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+import random
 import sys
 import time
 from pathlib import Path
@@ -65,12 +66,13 @@ def main(argv: list[str] | None = None) -> int:
     run.add_argument("--scale", choices=sorted(SCALES), default=os.environ.get("SNAILTRAIL_LAB_SCALE", "small"))
     run.add_argument("--iterations", type=int, default=int(os.environ.get("SNAILTRAIL_LAB_ITERATIONS", "3000")))
     run.add_argument("--concurrency", type=int, default=4)
-    run.add_argument("--seed", type=int, default=7)
+    run.add_argument("--seed", type=int, help="replay an earlier run exactly (every run logs its seed)")
 
     both = commands.add_parser("all", help="wait for MySQL, seed, then run the workload")
     both.add_argument("--scale", choices=sorted(SCALES), default=os.environ.get("SNAILTRAIL_LAB_SCALE", "small"))
     both.add_argument("--iterations", type=int, default=int(os.environ.get("SNAILTRAIL_LAB_ITERATIONS", "3000")))
     both.add_argument("--concurrency", type=int, default=4)
+    both.add_argument("--seed", type=int, help="replay an earlier run exactly (every run logs its seed)")
 
     improve = commands.add_parser("improve", help="apply the suggested indexes, then start a new slow log")
     improve.add_argument("--dry-run", action="store_true", help="only print the statements")
@@ -92,9 +94,9 @@ def main(argv: list[str] | None = None) -> int:
         log.info("seeded %d rows", sum(counts.values()))
 
     if args.command in {"run", "all"}:
-        stats = Workload(connect, SCALES[args.scale], seed=getattr(args, "seed", 7)).run(
-            args.iterations, args.concurrency
-        )
+        workload_seed = args.seed if args.seed is not None else random.SystemRandom().randrange(1, 1_000_000)
+        log.info("workload seed %d", workload_seed)
+        stats = Workload(connect, SCALES[args.scale], seed=workload_seed).run(args.iterations, args.concurrency)
         log.info("ran %d statements in %.1fs (%d errors)", stats.total, stats.seconds, sum(stats.errors.values()))
         for name, count in stats.executed.most_common():
             log.info("  %-20s %6d", name, count)

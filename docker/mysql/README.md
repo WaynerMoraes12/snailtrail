@@ -7,6 +7,7 @@ The lab's MySQL: the official `mysql:8.4` image, configured to log every stateme
 | `Dockerfile` | adds the files below and a log directory the other containers can read |
 | `snailtrail.cnf` | turns the slow log on |
 | `00-snailtrail.sh` | first start only: creates the `snailtrail` database and user |
+| `99-clear-slow-log.sh` | first start only: empties the slow log once the database is initialised |
 
 ## `snailtrail.cnf`
 
@@ -30,3 +31,12 @@ directory:
    `SHOW CREATE TABLE` and `EXPLAIN`, nothing more.
 2. `10-shop-schema.sql` — [`samples/shop_schema.sql`](../../samples/shop_schema.sql),
    copied in at build time — creates the shop's tables in `shop`.
+3. `99-clear-slow-log.sh` empties the slow log. With `long_query_time = 0`, the
+   initialisation itself is logged — the system tables, the users, the schema — and it
+   would show up in the first analysis as the most expensive "queries" of a database that
+   has not served one yet. The server writes the log with `O_APPEND`, so truncating it
+   under the running process is safe.
+
+`MYSQL_INITDB_SKIP_TZINFO=1` skips loading the named time zones into `mysql.time_zone*`:
+the lab does not use them (the log is in UTC), and the 1 800 `INSERT`s it takes are the
+bulk of what the initialisation would otherwise log.

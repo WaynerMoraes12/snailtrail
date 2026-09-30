@@ -7,6 +7,7 @@ with the mistakes real applications make, and a command to fix them.
 snailtrail-lab all                  # wait for MySQL, seed the shop, replay the workload
 snailtrail-lab seed --scale medium  # tiny | small (default) | medium
 snailtrail-lab run --iterations 5000 --concurrency 8
+snailtrail-lab run --seed 421337           # replay an earlier run exactly
 snailtrail-lab improve --dry-run    # print the indexes SnailTrail suggests
 snailtrail-lab improve              # create them, then start a new slow log
 snailtrail-lab rotate               # archive the slow log and start a new one
@@ -40,6 +41,15 @@ Twenty scenarios, weighted like a real application — mostly cheap primary-key 
 with the expensive patterns mixed in. Each worker thread holds its own connection and its
 own seeded random generator.
 
+Every run draws a **new seed** and logs it (`workload seed 421337`); `--seed` replays that
+run statement for statement. A fixed default would make a second run repeat the first one's
+writes exactly — `UPDATE orders SET status = 'cancelled', ... WHERE id = 66723` again, on a
+row that already holds those values — and InnoDB skips a write that changes nothing: no
+redo, no binary log, no fsync. The lab runs in autocommit on MySQL's durable defaults
+(`innodb_flush_log_at_trx_commit = 1`, `sync_binlog = 1`), where that fsync is most of a
+write's cost, so those no-op updates came out 30× faster after `improve` for reasons that
+had nothing to do with indexes. Fresh seeds keep a before-and-after comparison honest.
+
 | Scenario | SQL | What SnailTrail should find |
 |---|---|---|
 | product page | `SELECT * FROM products WHERE id = ?` (with and without backticks) | `SELECT *` only; both spellings are one class |
@@ -69,4 +79,6 @@ the rule it was written for.
 `improve` asks SnailTrail for its ST001 suggestions against the live schema, applies each
 `ALTER TABLE ... ADD INDEX`, and rotates the slow log (rename + `FLUSH SLOW LOGS`). Run the
 workload again and the dashboard's next analysis shows the same queries, much faster, under
-*Changes since the previous run*. It only ever adds indexes, and only to the lab database.
+*Changes since the previous run* — on the small scale, the order-items join goes from 60 ms
+to 0.3 ms and the session purge from 13 ms to 0.2 ms. It only ever adds indexes, and only
+to the lab database.
