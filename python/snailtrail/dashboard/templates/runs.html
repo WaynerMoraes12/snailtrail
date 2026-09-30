@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% set active = "runs" %}
+{% block title %}All runs - SnailTrail{% endblock %}
+{% block content %}
+<h1>Every analysis of the slow log</h1>
+<p class="lede">Each run is kept in MySQL, so a query class can be followed from one run to the next and a slowdown shows up as soon as it happens.</p>
+{% if runs %}
+<div class="table-wrap">
+<table>
+<thead><tr><th class="num">Run</th><th>Analyzed</th><th class="num">Statements</th><th class="num">Queries</th><th>Query time</th><th class="num">Critical</th><th class="num">Warnings</th></tr></thead>
+<tbody>
+{% for r in runs %}
+<tr>
+<td class="num"><a href="/runs/{{ r.id }}">{{ r.id }}</a></td>
+<td>{{ r.created_at | when }}</td>
+<td class="num">{{ r.events | count }}</td>
+<td class="num">{{ r.class_count | count }}</td>
+<td><span class="share" style="justify-content: flex-start"><span class="runs-bar" style="width: {{ '%.1f' | format(160 * r.total_query_time_us / longest if longest else 0) }}px"></span>{{ r.total_query_time_us | duration }}</span></td>
+<td class="num sev-critical">{{ r.critical or "" }}</td>
+<td class="num sev-warning">{{ r.warning or "" }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<p>No analysis has run yet.</p>
+{% endif %}
+{% endblock %}

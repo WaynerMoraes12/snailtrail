@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "macros.html" import severity, finding_marks %}
+{% set active = "run" if is_latest else "runs" %}
+{% block title %}Run {{ run.id }} - SnailTrail{% endblock %}
+{% block content %}
+<h1>{{ run.total_query_time_us | duration }} of query time in {{ run.events | count }} statements</h1>
+<p class="lede">Run {{ run.id }} read <code>{{ run.source }}</code> ({{ run.log_bytes | data_size }}){% if run.window_start %}, covering {{ run.window_start | when }} to {{ run.window_end | when }} UTC{% endif %}. It grouped the statements into {{ run.class_count | count }} distinct queries{% if run.schema_tables %} and checked them against {{ run.schema_tables }} tables of the schema{% endif %}.</p>
+
+{% set shown = classes | sum(attribute="time_share") %}
+{% set widest = (classes | map(attribute="time_share") | max) if classes else 1 %}
+<section class="trail" aria-label="Where the query time went">
+<div class="ribbon">
+{%- for c in classes %}
+<a href="/runs/{{ run.id }}/classes/{{ c.digest }}"{% if c.worst_severity %} class="sev-{{ c.worst_severity }}"{% endif %} style="flex-grow: {{ '%.6f' | format(c.time_share) }}" title="{{ c.label }}: {{ c.time_share | percent }} of query time" aria-label="Query {{ c.rank }}, {{ c.label }}, {{ c.time_share | percent }} of query time"></a>
+{%- endfor %}
+{%- if shown < 0.999 %}<a href="#queries" style="flex-grow: {{ '%.6f' | format(1 - shown) }}" title="Queries not shown: {{ (1 - shown) | percent }}" aria-label="Other queries, {{ (1 - shown) | percent }}"></a>{% endif %}
+</div>
+<ul class="trail-legend">
+{%- for c in classes[:5] %}
+<li><a href="/runs/{{ run.id }}/classes/{{ c.digest }}">{{ c.label }}</a><span class="num">{{ c.time_share | percent }}</span></li>
+{%- endfor %}
+</ul>
+</section>
+
+<dl class="facts">
+<div><dt>Findings</dt><dd>{% if run.findings %}{{ severity("critical", run.critical) }} {{ severity("warning", run.warning) }} {{ severity("info", run.info) }}{% else %}None{% endif %}</dd></div>
+<div><dt>Rows examined</dt><dd>{{ run.total_rows_examined | compact }}</dd></div>
+<div><dt>Log parsed in</dt><dd>{{ (run.parse_seconds * 1e6) | duration }} on {{ run.threads }} {{ "thread" if run.threads == 1 else "threads" }}</dd></div>
+<div><dt>Statements skipped</dt><dd>{{ run.skipped | count }}</dd></div>
+</dl>
+
+{% if regressions or improvements %}
+<h2>Changes since the previous run</h2>
+<div class="changes">
+{% if regressions %}
+<section aria-label="Slower">
+<h3 class="slower">{{ regressions | length }} {{ "query" if regressions | length == 1 else "queries" }} got slower</h3>
+<ul>{% for ch in regressions %}<li><a href="/runs/{{ run.id }}/classes/{{ ch.digest }}">{{ ch.label }}</a><span class="num slower">{{ ch.ratio | ratio_label }}, {{ ch.previous_avg_us | duration }} to {{ ch.current_avg_us | duration }}</span></li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% if improvements %}
+<section aria-label="Faster">
+<h3 class="faster">{{ improvements | length }} {{ "query" if improvements | length == 1 else "queries" }} got faster</h3>
+<ul>{% for ch in improvements %}<li><a href="/runs/{{ run.id }}/classes/{{ ch.digest }}">{{ ch.label }}</a><span class="num faster">{{ ch.ratio | ratio_label }}, {{ ch.previous_avg_us | duration }} to {{ ch.current_avg_us | duration }}</span></li>{% endfor %}</ul>
+</section>
+{% endif %}
+</div>
+{% endif %}
+
+<h2 id="queries">Queries by total time</h2>
+<div class="table-wrap">
+<table>
+<thead><tr>
+<th class="num">Rank</th><th>Query</th><th class="num">Total</th><th class="num">Share</th><th class="num">Calls</th><th class="num">Average</th><th class="num">p95</th><th class="num">Rows read per call</th><th>Findings</th>
+</tr></thead>
+<tbody>
+{% for c in classes %}
+<tr>
+<td class="num">{{ c.rank }}</td>
+<td class="query-cell"><a href="/runs/{{ run.id }}/classes/{{ c.digest }}">{{ c.label }}</a><code>{{ c.fingerprint }}</code></td>
+<td class="num">{{ c.total_time_us | duration }}</td>
+<td class="num"><span class="share"><span style="width: {{ '%.1f' | format(64 * c.time_share / widest if widest else 0) }}px"></span>{{ c.time_share | percent }}</span></td>
+<td class="num">{{ c.calls | compact }}</td>
+<td class="num">{{ c.avg_time_us | duration }}</td>
+<td class="num">{{ c.p95_us | duration }}</td>
+<td class="num">{{ c.rows_examined_per_call | compact }}</td>
+<td>{{ finding_marks(c.findings) }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}

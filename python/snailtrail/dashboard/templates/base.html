@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}SnailTrail{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Recursive:slnt,wght,CASL,CRSV,MONO@-15..0,300..1000,0..1,0..1,0..1&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+<link rel="icon" href="{{ url_for('static', path='snail.svg') }}" type="image/svg+xml">
+</head>
+<body>
+<header class="bar">
+<a class="brand" href="/">{% include "logo.svg" %}<span>SnailTrail</span></a>
+<nav aria-label="Main">
+<a href="/"{% if active == "run" %} aria-current="page"{% endif %}>Latest run</a>
+<a href="/runs"{% if active == "runs" %} aria-current="page"{% endif %}>All runs</a>
+<a href="/rules"{% if active == "rules" %} aria-current="page"{% endif %}>Rules</a>
+<a href="/docs">API</a>
+</nav>
+<form method="post" action="/analyze">
+<button type="submit"{% if busy %} disabled{% endif %}>{% if busy %}Analyzing the log{% else %}Analyze the log now{% endif %}</button>
+</form>
+</header>
+{% if last_error %}
+<div class="alert" role="alert">The last analysis failed: {{ last_error }}. Check that <code>{{ settings.slow_log }}</code> exists and that this process can read it.</div>
+{% endif %}
+<main>
+{% block content %}{% endblock %}
+</main>
+<footer>SnailTrail {{ version }}. Reading <code>{{ settings.slow_log }}</code>{% if settings.database_filter %}, database {{ settings.database_filter }}{% endif %}.</footer>
+<script src="{{ url_for('static', path='app.js') }}" defer></script>
+</body>
+</html>

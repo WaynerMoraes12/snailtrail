@@ -22,3 +22,5 @@ wheelhouse/
 *.exe
 *.so
 *.pyd
+
+.playwright-mcp/

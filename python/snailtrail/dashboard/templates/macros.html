@@ -1,0 +1,12 @@
+{% macro severity(level, text) -%}
+<span class="sev sev-{{ level }}">{{ text }}</span>
+{%- endmacro %}
+
+{% macro finding_marks(findings) -%}
+<span class="marks">
+{%- for level in ["critical", "warning", "info"] -%}
+{%- set n = findings | selectattr("severity", "equalto", level) | list | length -%}
+{%- if n %}<span class="sev sev-{{ level }}" title="{{ n }} {{ level }}">{{ n }}</span>{% endif -%}
+{%- endfor -%}
+</span>
+{%- endmacro %}

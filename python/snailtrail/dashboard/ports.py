@@ -1,0 +1,36 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
+from typing import Protocol
+
+import snailtrail
+
+from .model import Change, ClassSnapshot, FindingRow, HistoryPoint, Plan, RunSummary
+
+
+class HistoryStore(Protocol):
+    def save(self, report: snailtrail.Report, plans: Mapping[str, Plan] | None = None) -> int: ...
+
+    def runs(self, limit: int = 50) -> list[RunSummary]: ...
+
+    def run(self, run_id: int) -> RunSummary | None: ...
+
+    def latest_run(self) -> RunSummary | None: ...
+
+    def classes(self, run_id: int) -> list[ClassSnapshot]: ...
+
+    def snapshot(self, run_id: int, digest: str) -> ClassSnapshot | None: ...
+
+    def history(self, digest: str, limit: int = 30) -> list[HistoryPoint]: ...
+
+    def changes(self, run_id: int, threshold: float) -> tuple[list[Change], list[Change]]: ...
+
+    def findings(self, run_id: int, rule_id: str | None = None) -> list[tuple[str, FindingRow]]: ...
+
+
+class SchemaSource(Protocol):
+    def ddl(self) -> str: ...
+
+
+class Explainer(Protocol):
+    def explain(self, sql: str, database: str) -> Plan | None: ...

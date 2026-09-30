@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "macros.html" import severity %}
+{% set active = "runs" %}
+{% block title %}{{ c.label }} - SnailTrail{% endblock %}
+{% block content %}
+<p class="muted"><a href="/runs/{{ run.id }}">Run {{ run.id }}</a>, query {{ c.rank }} of {{ run.class_count }}, id {{ c.digest }}</p>
+<h1>{{ c.label }} takes {{ c.time_share | percent }} of the query time</h1>
+<pre class="fingerprint sql">{{ c.fingerprint | pretty_sql }}</pre>
+
+<div class="layout">
+<div>
+<h2>{% if c.findings %}What to fix{% else %}No findings{% endif %}</h2>
+{% if not c.findings %}<p class="muted">None of the advisor rules matched this query.</p>{% endif %}
+{% for f in c.findings %}
+<article class="finding">
+<h3>{{ severity(f.severity, f.severity | capitalize) }} {{ f.title }} <span class="rule">{{ f.rule_id }} {{ f.rule_name }}</span></h3>
+{% if f.detail %}<p>{{ f.detail }}</p>{% endif %}
+{% for part in fix_parts(f.suggestion) %}
+{% if part.kind == "sql" %}
+<div class="fix"><pre class="sql">{{ part.text }}</pre><button type="button" class="quiet" data-copy>Copy</button></div>
+{% else %}
+<p class="advice">{{ part.text }}</p>
+{% endif %}
+{% endfor %}
+</article>
+{% endfor %}
+
+{% if chart %}
+<h2>Across runs</h2>
+<svg class="chart" viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img" aria-label="Average and p95 time of this query in each run">
+<g class="grid">{% for y, label in chart.ticks %}<line x1="{{ chart.left }}" x2="{{ chart.width - 16 }}" y1="{{ y }}" y2="{{ y }}"/><text x="{{ chart.left - 10 }}" y="{{ y + 4 }}" text-anchor="end">{{ label }}</text>{% endfor %}</g>
+{% for s in chart.series %}
+<polyline class="series-{{ s.name }}" points="{{ s.points }}"/>
+{% for x, y, label in s.dots %}<circle class="dot-{{ s.name }}" cx="{{ x }}" cy="{{ y }}" r="3"><title>{{ s.name }} {{ label }}</title></circle>{% endfor %}
+{% endfor %}
+{% for x, label in chart.labels %}<text x="{{ x }}" y="{{ chart.height - 8 }}" text-anchor="middle">{{ label }}</text>{% endfor %}
+</svg>
+<p class="key"><span class="avg">average</span><span class="p95">p95</span></p>
+{% endif %}
+
+{% if c.plan %}
+<h2>EXPLAIN of the slowest execution</h2>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Table</th><th>Access</th><th>Index used</th><th class="num">Rows per scan</th><th class="num">Filtered</th><th>Extra</th></tr></thead>
+<tbody>
+{% for row in c.plan.rows %}
+<tr>
+<td><code>{{ row.table }}</code></td>
+<td>{% if row.full_scan %}{{ severity("warning", row.access_type) }}{% else %}{{ row.access_type }}{% endif %}</td>
+<td>{% if row.key %}<code>{{ row.key }}</code>{% else %}<span class="muted">none</span>{% endif %}</td>
+<td class="num">{{ row.rows | compact if row.rows is not none else "-" }}</td>
+<td class="num">{{ "%.0f%%" | format(row.filtered) if row.filtered is not none else "-" }}</td>
+<td>{% if row.using_filesort %}filesort {% endif %}{% if row.using_temporary %}temporary table{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% if c.plan.cost is not none %}<p class="muted">Estimated cost {{ "%.1f" | format(c.plan.cost) }}.</p>{% endif %}
+{% endif %}
+
+<h2>Slowest execution</h2>
+<p class="muted">{{ c.sample_time_us | duration }}{% if c.sample_database %} in database {{ c.sample_database }}{% endif %}</p>
+<pre class="fingerprint sql">{{ c.sample_sql }}</pre>
+</div>
+
+<aside>
+<h2>Measured in the log</h2>
+<dl class="metrics">
+<div><dt>Calls</dt><dd>{{ c.calls | count }}</dd></div>
+<div><dt>Total time</dt><dd>{{ c.total_time_us | duration }}</dd></div>
+<div><dt>Average</dt><dd>{{ c.avg_time_us | duration }}</dd></div>
+<div><dt>Median</dt><dd>{{ c.p50_us | duration }}</dd></div>
+<div><dt>p95</dt><dd>{{ c.p95_us | duration }}</dd></div>
+<div><dt>p99</dt><dd>{{ c.p99_us | duration }}</dd></div>
+<div><dt>Slowest</dt><dd>{{ c.max_us | duration }}</dd></div>
+<div><dt>Lock wait</dt><dd>{{ c.lock_time_us | duration }}</dd></div>
+<div><dt>Rows read per call</dt><dd>{{ c.rows_examined_per_call | compact }}</dd></div>
+<div><dt>Rows sent</dt><dd>{{ c.rows_sent | compact }}</dd></div>
+{% if c.full_scan_ratio %}<div><dt>Full scans</dt><dd>{{ c.full_scan_ratio | percent(0) }}</dd></div>{% endif %}
+{% if c.filesort_ratio %}<div><dt>Filesorts</dt><dd>{{ c.filesort_ratio | percent(0) }}</dd></div>{% endif %}
+{% if c.tmp_disk_ratio %}<div><dt>Temp tables on disk</dt><dd>{{ c.tmp_disk_ratio | percent(0) }}</dd></div>{% endif %}
+</dl>
+<h3 style="margin-top: 2rem">How long each call took</h3>
+<div class="histogram" role="img" aria-label="Number of calls per latency decade">
+{% for bar in decade_bars(c.latency_decades) %}
+<div title="{{ bar.value }} calls under {{ bar.label }}"><span style="height: {{ '%.1f' | format(bar.height) }}px"></span><small>{{ bar.label }}</small></div>
+{% endfor %}
+</div>
+</aside>
+</div>
+{% endblock %}

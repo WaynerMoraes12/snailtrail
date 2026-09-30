@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}No analysis yet - SnailTrail{% endblock %}
+{% block content %}
+<section class="empty">
+<h1>No analysis yet</h1>
+<p class="lede">SnailTrail reads the MySQL slow query log at <code>{{ settings.slow_log }}</code>, groups every statement into a query class and tells you which ones cost the most time and how to fix them.</p>
+<ol>
+<li>Turn the slow log on: <code>slow_query_log = ON</code>, <code>long_query_time = 0</code> to capture everything, and <code>log_slow_extra = ON</code> on MySQL 8.</li>
+<li>Let your application run for a while.</li>
+<li>Analyze the log with the button at the top of the page.</li>
+</ol>
+{% if busy %}<p>An analysis is running. This page will show its results once you reload it.</p>{% endif %}
+</section>
+{% endblock %}

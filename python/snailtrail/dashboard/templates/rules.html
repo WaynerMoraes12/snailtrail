@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros.html" import severity %}
+{% set active = "rules" %}
+{% block title %}Rules - SnailTrail{% endblock %}
+{% block content %}
+<h1>What the advisor looks for</h1>
+<p class="lede">Each query is checked against these rules using its slowest execution, the schema when it is available, and what the slow log measured.</p>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Rule</th><th>Checks</th><th>Default severity</th><th>Uses</th></tr></thead>
+<tbody>
+{% for r in rules %}
+<tr>
+<td><code>{{ r.id }}</code> {{ r.name }}</td>
+<td>{{ r.summary }}</td>
+<td>{{ severity(r.severity, r.severity | capitalize) }}</td>
+<td class="muted">{% if r.needs_schema %}schema{% elif r.needs_stats %}slow log metrics{% else %}the SQL{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}
