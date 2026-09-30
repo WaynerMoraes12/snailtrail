@@ -220,6 +220,29 @@ TEST(Analyzer, FilesStreamsAndTextAgree) {
     EXPECT_THROW(static_cast<void>(analyzer.analyze_file("/no/such/slow.log")), std::system_error);
 }
 
+TEST(Analyzer, RanksTheMissingIndexFirstInARealMySqlLog) {
+    AnalyzeOptions o = options(4);
+    o.database = "shop";
+    const Report r = Analyzer(o, &shop()).analyze_text(snailtrail::testing::read_sample("mysql-8.4-slow.log"));
+    ASSERT_FALSE(r.classes.empty());
+    const auto& top = r.classes.front();
+    EXPECT_EQ(top.label(), "SELECT order_items, products");
+    EXPECT_GT(top.time_share, 0.5);
+    ASSERT_TRUE(has_rule(top, "ST001"));
+    const auto fix = std::find_if(top.findings.begin(), top.findings.end(),
+                                  [](const auto& f) { return f.rule_id == "ST001"; });
+    EXPECT_NE(fix->suggestion.find("ADD INDEX idx_order_items_order_id (order_id)"), std::string::npos);
+    EXPECT_EQ(fix->severity, advisor::Severity::Critical);
+
+    const auto* phone = find_class(r, "where phone = ?");
+    ASSERT_NE(phone, nullptr);
+    EXPECT_TRUE(has_rule(*phone, "ST005"));
+    const auto* transactions = find_class(r, "commit");
+    ASSERT_NE(transactions, nullptr);
+    EXPECT_EQ(transactions->stats.kind(), sql::StatementKind::Transaction);
+    EXPECT_TRUE(transactions->findings.empty());
+}
+
 TEST(Analyzer, HandlesEmptyInput) {
     const Report r = Analyzer().analyze_text("");
     EXPECT_EQ(r.totals.events, 0U);

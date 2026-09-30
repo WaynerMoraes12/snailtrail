@@ -4,9 +4,10 @@ The pytest suite for the Python package.
 
 | File | Covers |
 |---|---|
-| `conftest.py` | shared fixtures: the shop schema, a generated log, an analysed report |
-| `test_native.py` | the extension: fingerprints, parse errors, rules, advice, analysis options, rendering, GIL release |
+| `conftest.py` | shared fixtures: `samples/`, the shop schema, a generated log, an analysed report |
+| `test_native.py` | the extension: fingerprints, parse errors, rules, advice, analysis options, rendering, the real MySQL 8.4 log, GIL release |
 | `test_dashboard.py` | settings, view helpers, EXPLAIN parsing, the in-memory store, the service with fakes, every page and API route |
+| `test_lab.py` | the lab: seeding statements, every workload scenario against a recording connection, the indexes `improve` applies; with a server, a short end-to-end run (marked `mysql`) |
 | `test_mysql.py` | the MySQL adapters against a real server: migrations, round trips, window-function regressions, `SHOW CREATE TABLE`, `EXPLAIN` (marked `mysql`) |
 
 ```bash

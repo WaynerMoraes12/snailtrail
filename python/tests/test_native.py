@@ -120,6 +120,17 @@ def test_analyze_file_matches_analyze_text(tmp_path, generated_log):
         snailtrail.analyze_file(str(tmp_path / "missing.log"))
 
 
+def test_a_real_mysql_log(samples, shop_schema):
+    report = snailtrail.analyze_file(str(samples / "mysql-8.4-slow.log"), schema=shop_schema, database="shop")
+    assert report.events > 1900
+    assert report.skipped == 5
+    top = report.classes[0]
+    assert top.label == "SELECT order_items, products"
+    assert top.flags["full_scan"] == 1.0
+    assert any("idx_order_items_order_id" in f.suggestion for f in top.findings if f.rule_id == "ST001")
+    assert top.sample["database"] == "shop"
+
+
 def test_analysis_releases_the_gil():
     text = snailtrail.generate_log(events=150_000, seed=3)
     ticks = 0

@@ -13,11 +13,11 @@ parallel and a failure names the exact case.
 | `test_parser.cpp` | every statement and clause, precedence, mysqldump DDL, scripts, error positions, pathological nesting |
 | `test_sql_writer.cpp` | SQL round trips, minimal parenthesisation, identifier quoting, the tree printer |
 | `test_schema.cpp` | type categories, loading a mysqldump file, ALTER/CREATE INDEX replay, index matching |
-| `test_slow_log_parser.cpp` | MySQL 8 (with `log_slow_extra`), Percona and MariaDB formats, time formats, restarts, CRLF |
+| `test_slow_log_parser.cpp` | MySQL 8 (with `log_slow_extra`), Percona and MariaDB formats, time formats, restarts, CRLF, a real MySQL 8.4 log |
 | `test_chunker.cpp` | event boundaries, chunked parsing equals sequential parsing, memory mapping, the generator |
 | `test_stats.cpp` | histogram tiling and accuracy, summaries, query classes, bit-identical chunked aggregation |
 | `test_advisor.cpp` | fact collection, every rule's positive and negative cases, the index advisor against a real schema, the engine |
-| `test_analyzer.cpp` | ranking, advice, thread-count independence, options, file/stream/text agreement |
+| `test_analyzer.cpp` | ranking, advice, thread-count independence, options, file/stream/text agreement, the verdict on the real log |
 | `test_reporters.cpp` | text layout and width, colours, the JSON schema, Markdown, the factory |
 | `test_cli.cpp` | argument parsing, every command in-process, exit codes, standard input |
 | `support.hpp` | locating `samples/` (overridable with `SNAILTRAIL_SAMPLES_DIR`, for running the Windows build natively) |

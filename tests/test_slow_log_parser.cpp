@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
+
+#include "support.hpp"
 
 #include "snailtrail/log/slow_log_parser.hpp"
 
@@ -64,6 +67,31 @@ SET timestamp=1705314225;
 SELECT DATE(created_at), SUM(total) FROM orders GROUP BY DATE(created_at);
 )";
 
+}
+
+TEST(SlowLog, ReadsARealMySql84Log) {
+    SlowLogParser::Counters counters;
+    const auto events = parse_all(snailtrail::testing::read_sample("mysql-8.4-slow.log"), &counters);
+    ASSERT_GT(events.size(), 1900U);
+    EXPECT_EQ(counters.skipped, 5U);
+    std::size_t scans = 0;
+    for (const auto& e : events) {
+        EXPECT_EQ(e.database, "shop");
+        EXPECT_EQ(e.user, "root");
+        EXPECT_GT(e.timestamp, 1790000000);
+        EXPECT_GT(e.thread_id, 0U);
+        EXPECT_FALSE(e.sql.empty());
+        EXPECT_NE(e.sql.back(), ';');
+        if (has(e.flags, ExecutionFlag::FullScan)) ++scans;
+    }
+    EXPECT_GT(scans, 100U);
+    const auto join = std::find_if(events.begin(), events.end(), [](const Captured& e) {
+        return e.sql.find("FROM order_items oi") != std::string::npos;
+    });
+    ASSERT_NE(join, events.end());
+    EXPECT_EQ(join->sql.find('\n') != std::string::npos, true);
+    EXPECT_GT(join->rows_examined, 200000U);
+    EXPECT_TRUE(has(join->flags, ExecutionFlag::FullScan));
 }
 
 TEST(SlowLog, ParsesMicrosecondsExactly) {

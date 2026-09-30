@@ -43,7 +43,7 @@ classDiagram
         +runs() list~RunSummary~
         +classes(run_id) list~ClassSnapshot~
         +history(digest) list~HistoryPoint~
-        +changes(run_id, threshold)
+        +changes(run_id, policy)
     }
     class SchemaSource {
         <<Protocol>>
