@@ -10,6 +10,11 @@ SAMPLES = Path(os.environ.get("SNAILTRAIL_SAMPLES_DIR", ROOT / "samples"))
 
 
 @pytest.fixture(scope="session")
+def samples() -> Path:
+    return SAMPLES
+
+
+@pytest.fixture(scope="session")
 def shop_schema() -> snailtrail.SchemaCatalog:
     return snailtrail.SchemaCatalog.from_ddl((SAMPLES / "shop_schema.sql").read_text(encoding="utf-8"))
 

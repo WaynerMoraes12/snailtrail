@@ -1,0 +1,79 @@
+name: snailtrail
+
+x-app: &app
+  image: snailtrail-app:1.0.0
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+    target: app
+
+services:
+  mysql:
+    image: snailtrail-mysql:8.4
+    build:
+      context: .
+      dockerfile: docker/mysql/Dockerfile
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-snailtrail}
+      MYSQL_DATABASE: shop
+      SNAILTRAIL_DB_PASSWORD: ${SNAILTRAIL_DB_PASSWORD:-snailtrail}
+      UMASK: "0644"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - slow-log:/var/log/mysql-slow
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-3307}:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+
+  lab:
+    <<: *app
+    command: ["snailtrail-lab", "all"]
+    user: "0:0"
+    environment:
+      SNAILTRAIL_LAB_DSN: mysql://root:${MYSQL_ROOT_PASSWORD:-snailtrail}@mysql:3306/shop
+      SNAILTRAIL_LAB_SLOW_LOG: /var/log/mysql-slow/slow.log
+      SNAILTRAIL_LAB_SCALE: ${LAB_SCALE:-small}
+      SNAILTRAIL_LAB_ITERATIONS: ${LAB_ITERATIONS:-3000}
+    volumes:
+      - slow-log:/var/log/mysql-slow
+    healthcheck:
+      disable: true
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  dashboard:
+    <<: *app
+    environment:
+      SNAILTRAIL_SLOW_LOG: /logs/slow.log
+      SNAILTRAIL_HISTORY_DSN: mysql://snailtrail:${SNAILTRAIL_DB_PASSWORD:-snailtrail}@mysql:3306/snailtrail
+      SNAILTRAIL_TARGET_DSN: mysql://snailtrail:${SNAILTRAIL_DB_PASSWORD:-snailtrail}@mysql:3306/shop
+      SNAILTRAIL_DATABASE: shop
+      SNAILTRAIL_INTERVAL: ${ANALYZE_EVERY:-60}
+    volumes:
+      - slow-log:/logs:ro
+    ports:
+      - "127.0.0.1:${DASHBOARD_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  cli:
+    image: snailtrail-cli:1.0.0
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      target: cli
+    profiles: ["tools"]
+    volumes:
+      - slow-log:/logs:ro
+      - ./samples:/samples:ro
+
+volumes:
+  mysql-data:
+  slow-log:

@@ -1,10 +1,30 @@
 # docker/
 
-Container images.
+Container images. The [`compose.yaml`](../compose.yaml) at the root wires them into the lab.
 
 | File | Image | Purpose |
 |---|---|---|
+| `Dockerfile` | `snailtrail-cli`, `snailtrail-app` | the product: CLI, dashboard, lab |
+| [`mysql/`](mysql) | `snailtrail-mysql:8.4` | MySQL 8.4 with the slow log on and the shop schema loaded |
 | `dev.Dockerfile` | `snailtrail-dev` | the full development toolchain |
+
+## `Dockerfile`
+
+One multi-stage file:
+
+```
+toolchain ──> build ──────────────> cli    (debian slim + a static snailtrail binary)
+                 │
+python ──> wheel ┼────────────────> app    (python slim + the snailtrail wheel + the CLI)
+```
+
+| Stage | Does |
+|---|---|
+| `toolchain` | Debian trixie with GCC 14, CMake, Ninja, GoogleTest |
+| `build` | builds the core and the CLI with `-Werror` and **runs the C++ test suite**: an image with a failing test cannot be built |
+| `cli` | the `snailtrail` binary alone, as an unprivileged user; `ENTRYPOINT ["snailtrail"]` |
+| `wheel` | builds the Python wheel (scikit-build-core compiles the extension) |
+| `app` | installs the wheel with the `dashboard` and `lab` extras and copies the CLI in; runs `snailtrail-dashboard` as UID 10001, with a health check on `/api/health` |
 
 ## `dev.Dockerfile`
 
