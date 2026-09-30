@@ -113,6 +113,23 @@ class ClassSnapshot:
 
 
 @dataclass(frozen=True)
+class ChangePolicy:
+    threshold: float = 1.5
+    min_delta_us: float = 1000.0
+    min_calls: int = 10
+
+    def significant(self, before_us: float, after_us: float, before_calls: int, after_calls: int) -> bool:
+        if before_us <= 0 or after_us <= 0:
+            return False
+        if before_calls < self.min_calls or after_calls < self.min_calls:
+            return False
+        if abs(after_us - before_us) < self.min_delta_us:
+            return False
+        ratio = after_us / before_us
+        return ratio >= self.threshold or ratio <= 1 / self.threshold
+
+
+@dataclass(frozen=True)
 class HistoryPoint:
     run_id: int
     created_at: datetime
@@ -204,18 +221,18 @@ def snapshots_from_report(
 
 
 def compare(
-    previous: Mapping[str, ClassSnapshot], current: list[ClassSnapshot], threshold: float
+    previous: Mapping[str, ClassSnapshot], current: list[ClassSnapshot], policy: ChangePolicy
 ) -> tuple[list[Change], list[Change]]:
     regressions: list[Change] = []
     improvements: list[Change] = []
     for snap in current:
         before = previous.get(snap.digest)
-        if before is None or before.avg_time_us <= 0 or snap.avg_time_us <= 0:
+        if before is None or not policy.significant(before.avg_time_us, snap.avg_time_us, before.calls, snap.calls):
             continue
         change = Change(snap.digest, snap.label, before.avg_time_us, snap.avg_time_us)
-        if change.ratio >= threshold:
+        if change.ratio >= policy.threshold:
             regressions.append(change)
-        elif change.ratio <= 1 / threshold:
+        else:
             improvements.append(change)
     regressions.sort(key=lambda c: c.ratio, reverse=True)
     improvements.sort(key=lambda c: c.ratio)

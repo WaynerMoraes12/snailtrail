@@ -6,6 +6,7 @@ import pytest
 import snailtrail
 from snailtrail.dashboard import MemoryHistory, MySQLDsn
 from snailtrail.dashboard.explain import MySQLExplainer, parse_plan
+from snailtrail.dashboard.model import ChangePolicy
 
 pytestmark = pytest.mark.mysql
 
@@ -88,16 +89,16 @@ def test_window_functions_find_the_same_changes_as_python(history):
     runs = [r.id for r in history.runs()]
     latest, before = runs[0], runs[1]
 
-    slower, faster = history.changes(before, 1.5)
+    slower, faster = history.changes(before, ChangePolicy())
     assert [c.label for c in slower] == ["SELECT products"]
     assert slower[0].ratio == pytest.approx(4.5, rel=1e-3)
     assert faster == []
-    slower, faster = history.changes(latest, 1.5)
+    slower, faster = history.changes(latest, ChangePolicy())
     assert slower == []
     assert [round(c.ratio, 3) for c in faster] == [round(2 / 45, 3)]
 
-    mem_slower, _ = memory.changes(3, 1.5)
-    assert [c.digest for c in mem_slower] == [c.digest for c in history.changes(before, 1.5)[0]]
+    mem_slower, _ = memory.changes(3, ChangePolicy())
+    assert [c.digest for c in mem_slower] == [c.digest for c in history.changes(before, ChangePolicy())[0]]
     points = history.history(slower[0].digest if slower else faster[0].digest)
     assert len(points) == 4
 

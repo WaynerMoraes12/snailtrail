@@ -52,7 +52,9 @@ def wait_for(connect: Any, seconds: int = 120) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="snailtrail-lab", description="Seed the shop database and replay a workload")
-    parser.add_argument("--dsn", default=os.environ.get("SNAILTRAIL_LAB_DSN", "mysql://root:snailtrail@127.0.0.1:3307/shop"))
+    parser.add_argument(
+        "--dsn", default=os.environ.get("SNAILTRAIL_LAB_DSN", "mysql://root:snailtrail@127.0.0.1:3307/shop")
+    )
     parser.add_argument("--slow-log", type=Path, default=Path(os.environ.get("SNAILTRAIL_LAB_SLOW_LOG", "slow.log")))
     commands = parser.add_subparsers(dest="command", required=True)
 

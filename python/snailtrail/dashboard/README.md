@@ -15,7 +15,7 @@ snailtrail-dashboard
 | File | What it does |
 |---|---|
 | `config.py` | `Settings` (from environment variables) and `MySQLDsn` |
-| `model.py` | the domain: `RunSummary`, `ClassSnapshot`, `FindingRow`, `Plan`, `Change`, `HistoryPoint`; turning a `Report` into rows; comparing runs |
+| `model.py` | the domain: `RunSummary`, `ClassSnapshot`, `FindingRow`, `Plan`, `Change`, `ChangePolicy`, `HistoryPoint`; turning a `Report` into rows; comparing runs |
 | `ports.py` | the interfaces the service depends on: `HistoryStore`, `SchemaSource`, `Explainer` |
 | `memory.py` | `MemoryHistory`: a `HistoryStore` in process memory (tests, `memory://` demo mode) |
 | `mysql.py` | `Database`, `Migrator`, `MySQLHistory`, `MySQLSchemaSource` |
@@ -144,10 +144,14 @@ erDiagram
 - Deleting a run cascades to its snapshots and their findings.
 - Upserts use the MySQL 8.0.19+ row alias (`INSERT ... AS new ON DUPLICATE KEY UPDATE
   label = new.label`) instead of the deprecated `VALUES()` function.
-- **Regressions are a window function.** For every query of a run, `LAG(avg_time_us) OVER
-  (PARTITION BY digest ORDER BY run_id)` finds its average in the previous run where it
-  appeared; a ratio of at least `SNAILTRAIL_REGRESSION_THRESHOLD` (1.5 by default) is a
-  regression, the inverse an improvement.
+- **Regressions are a window function.** For every query of a run, `LAG(...) OVER w` with
+  `WINDOW w AS (PARTITION BY digest ORDER BY run_id)` finds its average and call count in the
+  previous run where it appeared. A `ChangePolicy` decides what is significant: a ratio of at
+  least 1.5 either way, **and** an absolute difference of at least 1 ms, **and** at least 10
+  calls in both runs. Without the last two conditions, a 0.1 ms statement that takes 0.3 ms
+  once, or a query run five times, shows up as a "3× regression"; the lab made that obvious
+  on its first run. The same policy is applied in SQL and in Python, and a test asserts both
+  stores agree.
 - `Migrator` applies `migrations/*.sql` in name order and records them in
   `schema_migrations`; the dashboard creates its database and migrates on start.
 
@@ -177,6 +181,8 @@ erDiagram
 | `SNAILTRAIL_ANALYZE_ON_START` | on | analyse once at startup |
 | `SNAILTRAIL_INTERVAL` | 0 | analyse every N seconds (0 = only on demand) |
 | `SNAILTRAIL_REGRESSION_THRESHOLD` | 1.5 | ratio that counts as slower / faster |
+| `SNAILTRAIL_REGRESSION_MIN_DELTA_MS` | 1 | ignore changes smaller than this, in absolute terms |
+| `SNAILTRAIL_REGRESSION_MIN_CALLS` | 10 | ignore queries with fewer calls than this in either run |
 | `SNAILTRAIL_HOST` / `SNAILTRAIL_PORT` | `0.0.0.0` / 8080 | where to listen |
 
 ## Design

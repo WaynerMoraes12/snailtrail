@@ -1,5 +1,6 @@
 import json
 import threading
+from dataclasses import replace
 from datetime import datetime
 
 import pytest
@@ -9,7 +10,7 @@ import snailtrail
 from snailtrail.dashboard import AnalysisInProgress, AnalysisService, MemoryHistory, MySQLDsn, Settings, create_app
 from snailtrail.dashboard.app import Services
 from snailtrail.dashboard.explain import explainable, parse_plan
-from snailtrail.dashboard.model import compare, snapshots_from_report
+from snailtrail.dashboard.model import ChangePolicy, compare, snapshots_from_report
 from snailtrail.dashboard.views import compact, decade_bars, duration, fix_parts, line_chart, pretty_sql, ratio_label
 
 EXPLAIN = {
@@ -162,23 +163,34 @@ def test_memory_history_tracks_runs_and_changes(report):
     top = classes[0]
     assert history.snapshot(first, top.digest).rank == 1
     assert len(history.history(top.digest)) == 2
-    assert history.changes(second, 1.5) == ([], [])
+    assert history.changes(second, ChangePolicy()) == ([], [])
     assert all(f.rule_id == "ST001" for _, f in history.findings(first, "ST001"))
     assert history.run(99) is None
 
 
 def test_compare_finds_regressions_and_improvements(report):
     before = {s.digest: s for s in snapshots_from_report(report, 1)}
-    after = snapshots_from_report(report, 2)
-    slow = after[0].__class__(**{**after[0].__dict__, "avg_time_us": after[0].avg_time_us * 3})
-    fast = after[1].__class__(**{**after[1].__dict__, "avg_time_us": after[1].avg_time_us / 4})
-    regressions, improvements = compare(before, [slow, fast, *after[2:]], 1.5)
+    busy = [s for s in snapshots_from_report(report, 2) if s.calls >= 10]
+    slow = replace(busy[0], avg_time_us=busy[0].avg_time_us * 3)
+    fast = replace(busy[1], avg_time_us=busy[1].avg_time_us / 4)
+    regressions, improvements = compare(before, [slow, fast, *busy[2:]], ChangePolicy())
     assert [c.digest for c in regressions] == [slow.digest]
     assert regressions[0].ratio == pytest.approx(3)
     assert [c.digest for c in improvements] == [fast.digest]
 
 
 SCHEMA_DDL = "CREATE TABLE orders (id INT PRIMARY KEY, customer_id INT); CREATE TABLE customers (id INT PRIMARY KEY);"
+
+
+def test_change_policy_ignores_noise():
+    policy = ChangePolicy(threshold=1.5, min_delta_us=1000, min_calls=10)
+    assert policy.significant(10_000, 30_000, 50, 50)
+    assert policy.significant(30_000, 10_000, 50, 50)
+    assert not policy.significant(100, 320, 500, 500)
+    assert not policy.significant(10_000, 30_000, 5, 50)
+    assert not policy.significant(10_000, 13_000, 50, 50)
+    assert not policy.significant(0, 13_000, 50, 50)
+    assert Settings.from_env({"SNAILTRAIL_REGRESSION_MIN_DELTA_MS": "5"}).change_policy.min_delta_us == 5000
 
 
 def test_service_analyzes_explains_and_saves(log_file):

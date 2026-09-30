@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from .model import ChangePolicy
+
 
 @dataclass(frozen=True)
 class MySQLDsn:
@@ -64,12 +66,22 @@ class Settings:
     analyze_on_start: bool = True
     interval_seconds: int = 0
     regression_threshold: float = 1.5
+    regression_min_delta_ms: float = 1.0
+    regression_min_calls: int = 10
     host: str = "0.0.0.0"
     port: int = 8080
 
     @property
     def in_memory(self) -> bool:
         return self.history_dsn.startswith("memory:")
+
+    @property
+    def change_policy(self) -> ChangePolicy:
+        return ChangePolicy(
+            threshold=self.regression_threshold,
+            min_delta_us=self.regression_min_delta_ms * 1000,
+            min_calls=self.regression_min_calls,
+        )
 
     @property
     def history(self) -> MySQLDsn:
@@ -91,6 +103,8 @@ class Settings:
             analyze_on_start=_flag(env.get("SNAILTRAIL_ANALYZE_ON_START"), True),
             interval_seconds=_number(env, "SNAILTRAIL_INTERVAL", 0),
             regression_threshold=float(env.get("SNAILTRAIL_REGRESSION_THRESHOLD", "1.5")),
+            regression_min_delta_ms=float(env.get("SNAILTRAIL_REGRESSION_MIN_DELTA_MS", "1")),
+            regression_min_calls=_number(env, "SNAILTRAIL_REGRESSION_MIN_CALLS", 10),
             host=env.get("SNAILTRAIL_HOST", "0.0.0.0"),
             port=_number(env, "SNAILTRAIL_PORT", 8080),
         )

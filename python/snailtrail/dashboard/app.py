@@ -141,7 +141,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     def run_page(request: Request, run_id: int) -> HTMLResponse:
         run = require_run(run_id)
         classes = services.history.classes(run_id)
-        regressions, improvements = services.history.changes(run_id, settings.regression_threshold)
+        regressions, improvements = services.history.changes(run_id, settings.change_policy)
         latest = services.history.latest_run()
         return page(
             request,
@@ -193,7 +193,7 @@ def create_app(settings: Settings | None = None, services: Services | None = Non
     @app.get("/api/runs/{run_id}", tags=["api"])
     def api_run(run_id: int) -> dict[str, Any]:
         run = require_run(run_id)
-        regressions, improvements = services.history.changes(run_id, settings.regression_threshold)
+        regressions, improvements = services.history.changes(run_id, settings.change_policy)
         return jsonable_encoder(
             {
                 "run": asdict(run),

@@ -5,7 +5,7 @@ from typing import Protocol
 
 import snailtrail
 
-from .model import Change, ClassSnapshot, FindingRow, HistoryPoint, Plan, RunSummary
+from .model import Change, ChangePolicy, ClassSnapshot, FindingRow, HistoryPoint, Plan, RunSummary
 
 
 class HistoryStore(Protocol):
@@ -23,7 +23,7 @@ class HistoryStore(Protocol):
 
     def history(self, digest: str, limit: int = 30) -> list[HistoryPoint]: ...
 
-    def changes(self, run_id: int, threshold: float) -> tuple[list[Change], list[Change]]: ...
+    def changes(self, run_id: int, policy: ChangePolicy) -> tuple[list[Change], list[Change]]: ...
 
     def findings(self, run_id: int, rule_id: str | None = None) -> list[tuple[str, FindingRow]]: ...
 

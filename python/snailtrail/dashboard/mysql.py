@@ -16,6 +16,7 @@ from .config import MySQLDsn
 from .explain import parse_plan
 from .model import (
     Change,
+    ChangePolicy,
     ClassSnapshot,
     FindingRow,
     HistoryPoint,
@@ -132,11 +133,13 @@ _SEVERITY_ORDER = "FIELD(severity, 'critical', 'warning', 'info')"
 
 _CHANGES_SQL = """
 WITH ordered AS (
-    SELECT s.run_id, s.digest, s.avg_time_us,
-           LAG(s.avg_time_us) OVER (PARTITION BY s.digest ORDER BY s.run_id) AS previous_avg_us
+    SELECT s.run_id, s.digest, s.avg_time_us, s.calls,
+           LAG(s.avg_time_us) OVER w AS previous_avg_us,
+           LAG(s.calls) OVER w AS previous_calls
     FROM class_snapshots s
     WHERE s.run_id <= %s
       AND s.digest IN (SELECT digest FROM class_snapshots WHERE run_id = %s)
+    WINDOW w AS (PARTITION BY s.digest ORDER BY s.run_id)
 )
 SELECT o.digest, c.label, o.previous_avg_us, o.avg_time_us,
        o.avg_time_us / o.previous_avg_us AS ratio
@@ -145,6 +148,9 @@ JOIN query_classes c ON c.digest = o.digest
 WHERE o.run_id = %s
   AND o.previous_avg_us > 0
   AND o.avg_time_us > 0
+  AND o.calls >= %s
+  AND o.previous_calls >= %s
+  AND ABS(o.avg_time_us - o.previous_avg_us) >= %s
   AND (o.avg_time_us / o.previous_avg_us >= %s OR o.avg_time_us / o.previous_avg_us <= 1 / %s)
 ORDER BY ratio DESC
 """
@@ -334,16 +340,25 @@ class MySQLHistory:
             for r in reversed(rows)
         ]
 
-    def changes(self, run_id: int, threshold: float) -> tuple[list[Change], list[Change]]:
+    def changes(self, run_id: int, policy: ChangePolicy) -> tuple[list[Change], list[Change]]:
         with self._database.cursor() as cursor:
             cursor.execute(
                 _CHANGES_SQL,
-                (run_id, run_id, run_id, threshold, threshold),
+                (
+                    run_id,
+                    run_id,
+                    run_id,
+                    policy.min_calls,
+                    policy.min_calls,
+                    policy.min_delta_us,
+                    policy.threshold,
+                    policy.threshold,
+                ),
             )
             rows = cursor.fetchall()
         changes = [Change(r["digest"], r["label"], r["previous_avg_us"], r["avg_time_us"]) for r in rows]
-        regressions = [c for c in changes if c.ratio >= threshold]
-        improvements = sorted((c for c in changes if c.ratio < threshold), key=lambda c: c.ratio)
+        regressions = [c for c in changes if c.ratio >= policy.threshold]
+        improvements = sorted((c for c in changes if c.ratio < policy.threshold), key=lambda c: c.ratio)
         return regressions, improvements
 
     def findings(self, run_id: int, rule_id: str | None = None) -> list[tuple[str, FindingRow]]:

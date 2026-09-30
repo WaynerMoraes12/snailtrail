@@ -9,6 +9,7 @@ import snailtrail
 
 from .model import (
     Change,
+    ChangePolicy,
     ClassSnapshot,
     FindingRow,
     HistoryPoint,
@@ -63,12 +64,12 @@ class MemoryHistory:
                 )
         return points[-limit:]
 
-    def changes(self, run_id: int, threshold: float) -> tuple[list[Change], list[Change]]:
+    def changes(self, run_id: int, policy: ChangePolicy) -> tuple[list[Change], list[Change]]:
         previous: dict[str, ClassSnapshot] = {}
         for earlier in sorted(i for i in self._classes if i < run_id):
             for snap in self._classes[earlier]:
                 previous[snap.digest] = snap
-        return compare(previous, self._classes.get(run_id, []), threshold)
+        return compare(previous, self._classes.get(run_id, []), policy)
 
     def findings(self, run_id: int, rule_id: str | None = None) -> list[tuple[str, FindingRow]]:
         return [
